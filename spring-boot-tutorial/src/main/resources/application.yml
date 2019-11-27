@@ -1,0 +1,29 @@
+server:
+  port: 8088
+
+spring:
+  profiles:
+#    개발자 모드
+    active: development
+
+  datasource:
+#    JDBC 드라이버 이름
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://arjuna.db.elephantsql.com:5432/fsmfppcj
+    username: fsmfppcj
+    password: opXwqwWLpezpFQHX6OWFl3mQW1xf0VqH
+
+#    JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: false
+    properties:
+      temp:
+        user_jdbc_metadata_defaults: false
+      jdbc:
+        lob:
+          non_contextual_creation: true
