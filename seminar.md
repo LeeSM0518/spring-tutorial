@@ -353,5 +353,5 @@
           user_jdbc_metadata_defaults: false
         jdbc:
           lob:
-            non_contextual_creation: true
+            non_contextual_creation: trueㅌ
   ```
