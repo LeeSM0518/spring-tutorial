@@ -143,3 +143,218 @@ Downloaded from central: https://repo.maven.apache.org/maven2/org/apache/maven/p
 
 ## 1.2. 그레이들 프로젝트 생성
 
+* **Intellij gradle 프로젝트 만들기**
+
+  ![image](https://user-images.githubusercontent.com/43431081/74120721-d9c0e180-4c07-11ea-9ee2-ee8b95213000.png)
+
+* **Dependency 추가**
+
+  ```
+  plugins {
+      id 'java'
+  }
+  
+  group 'org.example'
+  version '1.0-SNAPSHOT'
+  
+  sourceCompatibility = 1.8
+  
+  repositories {
+      mavenCentral()
+  }
+  
+  dependencies {
+      testCompile group: 'junit', name: 'junit', version: '4.12'
+      compile 'org.springframework:spring-context:5.3.2'
+  }
+  ```
+
+<br>
+
+## 1.3. 예제 코드 작성
+
+* **gradle-tutorial2/src/main/java/chap02/Greeter.java**
+
+  ```java
+  public class Greeter {
+  
+    private String format;
+  
+    public String greet(String guest) {
+      return String.format(format, guest);
+    }
+  
+    public void setFormat(String format) {
+      this.format = format;
+    }
+  
+  }
+  
+  ```
+
+* **gradle-tutorial2/src/main/java/chap02/AppContext.java**
+
+  ```java
+  import org.springframework.context.annotation.Bean;
+  import org.springframework.context.annotation.Configuration;
+  
+  @Configuration
+  public class AppContext {
+  
+    @Bean
+    public Greeter greeter() {
+      Greeter g = new Greeter();
+      g.setFormat("%s, 안녕하세요!");
+      return g;
+    }
+  
+  }
+  
+  ```
+
+  * 스프링은 객체를 생성하고 초기화하는 기능을 제공한다.
+    * 스프링이 생성하는 객체를 **빈(Bean)** 객체라고 부른다.
+      * 위의 예제에서 빈 객체에 대한 정보를 담고 있는 메서드가 **greeter() 메서드이다.**
+    * **@Bean 애노테이션을** 메서드에 붙이면 해당 메서드가 생성한 객체를 스프링이 관리하는 빈 객체로 등록한다.
+
+* **gradle-tutorial2/src/main/java/chap02/Main.java**
+
+  ```java
+  // AnnotationConfigApplicationContext : 자바 설정에서 정보를 읽어와 빈 객체를 생성하고 관리한다.
+  import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+  
+  public class Main {
+  
+    public static void main(String[] args) {
+      // AnnotationConfigApplicationContext 객체를 생성할 때
+      //  앞서 작성한 AppContext 클래스를 파라미터로 넘긴다.
+      //  AppContext 에 정의한 @Bean 설정 정보를 읽어와 Greeter 객체를 생성하고 초기화한다.
+      AnnotationConfigApplicationContext ctx =
+          new AnnotationConfigApplicationContext(AppContext.class);
+      
+      // AnnotationConfigApplicationContext 가 자바 설정을 읽어와 생성한 빈 객체를 검색
+      //  첫 번째 파라미터 : 빈 객체 이름
+      //  두 번째 파라미터 : 빈 객체의 타입
+      //    Greeter 객체를 가져온다. 
+      Greeter g = ctx.getBean("greeter", Greeter.class);
+      
+      String msg = g.greet("스프링");
+      System.out.println(msg);
+      ctx.close();
+    }
+  
+  }
+  ```
+
+* **실행 결과**
+
+  ```
+  4:16:45 오후: Executing task 'Main.main()'...
+  
+  > Task :compileJava
+  > Task :processResources NO-SOURCE
+  > Task :classes
+  
+  > Task :Main.main()
+  스프링, 안녕하세요!
+  
+  BUILD SUCCESSFUL in 1s
+  2 actionable tasks: 2 executed
+  4:16:47 오후: Task execution finished 'Main.main()'.
+  ```
+
+<br>
+
+# 2. 스프링은 객체 컨테이너
+
+위의 예제에서 핵심은 **AnnotationConfigApplicationContext 클래스이다.** 스프링의 핵심 기능은 **객체를 생성하고 초기화하는 것이다.** 
+
+AnnotationConfigApplicationContext 클래스는 자바 클래스에서 정보를 읽어와 객체 생성과 초기화를 수행한다.
+
+* **AnnotationConfigApplicationContext 클래스의 게층도**
+  * 맨 위 : **BeanFactory**
+    * 객체 생성과 검색에 대한 기능을 정의
+  * 중간 : **ApplicationContext**
+    * 메시지, 프로필/환경 변수 등을 처리할 수 있는 기능을 추가로 정의
+  * 맨 밑
+    * **AnnotationConfigApplicationContext** 
+      * 자바 애노테이션을 이용한 클래스로부터 객체 설정 정보를 가져온다.
+    * **GenericXmlApplicationContext**
+      * XML로부터 객체 설정 정보를 가져온다.
+    * **GenericGroovyApplicationContext**
+      * 그루비 코드를 이용해 설정 정보를 가져온다.
+
+<br>
+
+ApplicationContext(또는 BeanFactory)는 각 구현 클래스의 설정 정보로부터 빈(Bean)이라고 불리는 객체로 만들고 내부에 보관한다. 즉, 빈 객체의 생성, 초기화, 보관, 제거 등을 관리한다. 그래서 이것을 **컨테이너(Container)** 라고도 부른다.
+
+* **스프링 컨테이너**
+  * ApplicationContext
+  * BeanFactory
+
+<br>
+
+## 2.1. 싱글톤(Singleton) 객체
+
+* **gradle-tutorial3/src/main/java/chap02/Main2.java**
+
+  ```java
+  import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+  
+  public class Main2 {
+  
+    public static void main(String[] args) {
+      AnnotationConfigApplicationContext ctx =
+          new AnnotationConfigApplicationContext(AppContext.class);
+      
+      // 빈 객체를 구해서 각각 g1과 g2 변수에 할당
+      Greeter g1 = ctx.getBean("greeter", Greeter.class);
+      Greeter g2 = ctx.getBean("greeter", Greeter.class);
+     
+      System.out.println("(g1 == g2) = " + (g1 == g2));
+      ctx.close();
+    }
+  
+  }
+  ```
+
+* **실행 결과**
+
+  ```
+  4:50:49 오후: Executing task 'Main2.main()'...
+  
+  > Task :compileJava
+  > Task :processResources NO-SOURCE
+  > Task :classes
+  
+  > Task :Main2.main()
+  (g1 == g2) = true
+  
+  BUILD SUCCESSFUL in 0s
+  2 actionable tasks: 2 executed
+  4:50:50 오후: Task execution finished 'Main2.main()'.
+  ```
+
+  * 위의 결과의 의미는 **getBean() 메서드는 같은 객체를 리턴한다는 의미이다.**
+  * 별도 설정을 하지 않을 경우 스프링은 한 개의 빈 객체만을 생성한다.
+    * 스프링은 기본적으로 한 개의 **@Bean 애노테이션에** 대해 한 개의 빈 객체를 생성한다.
+
+<br>
+
+아래와 같은 설정을 사용하면 두 개의 빈 객체가 생성된다.
+
+```java
+@Bean
+public Greeter greeter() {
+  Greeter g = new Greeter();
+  g.setFormat("%s, 안녕하세요!");
+  return g;
+}
+
+@Bean
+public Greeter greeter1() {
+  Greeter g = new Greeter();
+  g.setFormat("%s, 안녕하세요!");
+  return g;
+}
+```
