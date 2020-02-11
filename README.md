@@ -4,7 +4,7 @@
 
 * [Chapter1. 들어가며 (what-is-spring)](https://github.com/LeeSM0518/spring-tutorial/tree/master/what-is-spring)
 * [Chapter2. 스프링 시작하기 (start-spring)](https://github.com/LeeSM0518/spring-tutorial/tree/master/start-spring)
-* Chapter3. 스프링 DI (spring-di)
+* [Chapter3. 스프링 DI (spring-di)](https://github.com/LeeSM0518/spring-tutorial/tree/master/spring-di)
 * Chapter4. 의존 자동 주입 (dependence-auto-injection)
 * Chapter5. 컴포넌트 스캔 (component-scan)
 * Chapter6. 빈 라이프사이클과 범위 (bean-lifecycle-and-scope)
