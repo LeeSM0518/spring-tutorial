@@ -622,13 +622,267 @@ execution 명시자는 **Advice를 적용할 메서드를 지정할 때 사용�
 
 * **execution 명시자 예시**
 
-| 예                              | 설명                                                         |
-| ------------------------------- | ------------------------------------------------------------ |
-| execution(public void set*(..)) | 리턴 타입: void<br />메서드 이름: set으로 시작<br />파라미터: 0개 이상 |
-| execution(* chap07.\*.\*())     |                                                              |
-|                                 |                                                              |
-|                                 |                                                              |
-|                                 |                                                              |
-|                                 |                                                              |
-|                                 |                                                              |
+| 예                                                   | 설명                                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| execution(public void set*(..))                      | 리턴 타입: void<br />메서드 이름: set으로 시작<br />파라미터: 0개 이상 |
+| execution(* chap07 . \* . \* ())                     | chap07 패키지의 타입에 속한 파라미터가 없는 모든 메서드 호출 |
+| execution(* chap07 . . \* . \* (. .) )               | chap07 패키지 및 하위 패키지에 있는, 파라미터가 0개 이상인 메서드 호출 |
+| execution(Long chap07 . Calculator . factorial(. .)) | 리턴 타입이 Long인 Calculator 타입의 factorial() 메서드 호출 |
+| execution(* get\*(\*))                               | 이름이 get으로 시작하고 파라미터가 한 개인 메서드 호출       |
+| execution(* get\*(\*, \*))                           | 이름이 get으로 시작하고 파라미터가 두 개인 메서드 호출       |
+| execution(\* read\*(Integer, ..))                    | 메서드 이름이 read로 시작하고, 첫 번째 파라미터 타입이 Integer이며, 한 개 이상의 파라미터를 갖는 메서드 호출 |
 
+<br>
+
+## 4.2 Advice 적용 순서
+
+* **aspect/CacheAspect.java**
+
+  ```java
+  @Aspect
+  public class CacheAspect {
+  
+    private Map<Long, Object> cache = new HashMap<>();
+  
+    @Pointcut("execution(public * chap07..*(long))")
+    public void cacheTarget() {
+    }
+    
+    @Around("cacheTarget()")
+    public Object execute(ProceedingJoinPoint joinPoint) throws Throwable {
+      // 첫 번째 인자를 Long 타입으로 구한다.
+      Long num = (Long) joinPoint.getArgs()[0];
+      // 위에서 구한 키값이 cache에 존재하면 키에 해당하는 값을 구해서
+      //  리턴한다.
+      if (cache.containsKey(num)) {
+        System.out.printf("CacheAspect: Cache에서 구함[%d]\n", num);
+        return cache.get(num);
+      }
+      
+      // 처음에 구한 키값이 cache에 존재하지 않으면
+      //  프록시 대상 객체를 실행한다.
+      Object result = joinPoint.proceed();
+      // 프록시 대상 객체를 실행한 결과를 cache에 추가
+      cache.put(num, result);
+      System.out.printf("CacheAspect: Cache에 추가[%d]\n", num);
+      // 프록시 대상 객체의 실행 결과를 리턴한다.
+      return result;
+    }
+  
+  }
+  ```
+
+  * **@Around** : cacheTarget() 메서드로 지정
+  * **@Pointcut** : 첫 번째 인자가 long인 메서드를 대상
+    * Calculator의 factorial(long) 메서드에 적용
+
+* **config/AppCtxWithCache.java**
+
+  ```java
+  @Configuration
+  @EnableAspectJAutoProxy
+  public class AppCtxWithCache {
+    
+    @Bean
+    public CacheAspect cacheAspect() {
+      return new CacheAspect();
+    }
+    
+    @Bean
+    public ExeTimeAspect exeTimeAspect() {
+      return new ExeTimeAspect();
+    }
+    
+    @Bean
+    public Calculator calculator() {
+      return new RecCalculator();
+    }
+    
+  }
+  ```
+
+  * 두 개의 Aspect 추가
+
+* **main/MainAspectWithCache.java**
+
+  ```java
+  public class MainAspectWithCache {
+  
+    public static void main(String[] args) {
+      AnnotationConfigApplicationContext ctx =
+        new AnnotationConfigApplicationContext(AppCtxWithCache.class);
+  
+      Calculator calculator = ctx.getBean("calculator", Calculator.class);
+      calculator.factorial(7);
+      calculator.factorial(7);
+      calculator.factorial(5);
+      calculator.factorial(5);
+      ctx.close();
+    }
+  
+  }
+  ```
+
+* **실행 결과**
+
+  ```
+  RecCalculator.factorial([7]) 실행 시간 : 28123 ns
+  CacheAspect: Cache에 추가[7]
+  CacheAspect: Cache에서 구함[7]
+  RecCalculator.factorial([5]) 실행 시간 : 23663 ns
+  CacheAspect: Cache에 추가[5]
+  CacheAspect: Cache에서 구함[5]
+  ```
+
+  * 결과를 보면 첫 번째 factorial(7)을 실행할 때와 두 번째 factorial(7)을 실행할 때의 결과가 다르다.
+
+    1. 첫 번째 결과
+
+       ```
+       RecCalculator.factorial([7]) 실행 시간 : 28123 ns
+       CacheAspect: Cache에 추가[7]
+       ```
+
+    2. 두 번째 결과
+
+       ```
+       CacheAspect: Cache에서 구함[7]
+       ```
+
+  * 왜냐하면, Advice를 아래와 같은 순서로 적용했기 때문이다.
+
+    ![image](https://user-images.githubusercontent.com/43431081/75112354-66e34c00-5686-11ea-8a85-71a2368a4f55.png)
+
+  * 처음 factorial(3) 을 호출할 때는 CacheAspect에서 joinPoint.proceed()를 실행해 ExeTimeAspect가 진행되고 이 메서드에서 또 joinPoint.proceed()를 실행해서 RecCalculator의 factorial() 을 호출하게 됨으로써 순차적으로 실행된 후 종료가 되면서 출력을 하는 것이다.
+
+  * 두 번째 factorial(3)은 CacheAspect 프록시에서 실행이 종료가 되면서 뒤쪽 출력문이 나오지 않는 것이다.
+
+<br>
+
+어떤 Aspect가 먼저 적용될지는 스프링 프레임워크나 자바 버전에 따라 달라질 수 있기 때문에 **적용 순서가 중요하다면 직접 순서를 저장해야 한다.**
+
+이럴 때 사용하는 것이 **@Order 애노테이션이다.** @Order 애노테이션을 @Aspect 애노테이션에 붙이면 **지정한 값에 따라 적용 순서를 결정한다.**
+
+* **@Order 예시**
+
+  ```java
+  @Aspect
+  @Order(1)
+  public class ExeTimeAspect {
+    ...
+  }
+  
+  @Aspect
+  @Order(2)
+  public class CacheAspect {
+    ..
+  }
+  ```
+
+* **실행 결과**
+
+  ```
+  CacheAspect: Cache에 추가[7]
+  RecCalculator.factorial([7]) 실행 시간 : 9695045 ns
+  CacheAspect: Cache에서 구함[7]
+  RecCalculator.factorial([7]) 실행 시간 : 334665 ns
+  CacheAspect: Cache에 추가[5]
+  RecCalculator.factorial([5]) 실행 시간 : 196057 ns
+  CacheAspect: Cache에서 구함[5]
+  RecCalculator.factorial([5]) 실행 시간 : 104633 ns
+  ```
+
+  * ExeTimeAspect가 먼저 적용되는 것을 확인할 수 있다.
+
+<br>
+
+## 4.3. @Around의 Pointcut 설정과 @Pointcut 재사용
+
+@Pointcut 애노테이션이 아닌 @Around 애노테이션에 execution 명시자를 직접 지정할 수도 있다.
+
+* **aspect/CacheAspect.java**
+
+  ```java
+  @Aspect
+  public class CacheAspect {
+  
+    private Map<Long, Object> cache = new HashMap<>();
+  
+    @Around("execution(public * chap07..*(long))")
+    public Object execute(ProceedingJoinPoint joinPoint) throws Throwable {
+      ...
+    }
+  
+  }
+  ```
+
+<br>
+
+같은 Pointcut을 여러 Advice가 함께 사용하여 **공통 Pointcut을 재사용할 수도 있다.**
+
+* **aspect/ExeTimeAspect.java**
+
+  ```java
+  @Aspect
+  public class ExeTimeAspect {
+  
+    @Pointcut("execution(public * chap07..*(..))")
+    public void publicTarget() {
+    }
+  
+    @Around("publicTarget()")
+    public Object measure(ProceedingJoinPoint joinPoint) throws Throwable {
+      ...
+    }
+  
+  }
+  ```
+
+* **aspect/CacheAspect.java**
+
+  ```java
+  @Aspect
+  public class CacheAspect {
+  
+    private Map<Long, Object> cache = new HashMap<>();
+  
+    @Around("aspect.ExeTimeAspect.publicTarget()")
+    public Object execute(ProceedingJoinPoint joinPoint) throws Throwable {
+      ...
+    }
+  
+  }
+  ```
+
+  * 재사용하고 싶은 해당 Pointcut의 완전한 클래스 이름을 포함한 메서드 이름을 @Around 애노테이션에서 사용하면 된다.
+
+<br>
+
+여러  Aspect에서 공통으로 사용하는 **Pointcout이 있다면 별도 클래스에 Pointcut을 정의하고,** 각 Aspect 클래스에서 해당 Pointcut을 사용하도록 구성하면 Pointcut 관리가 편해진다.
+
+* **CommomPointcut.java**
+
+  ```java
+  @Pointcut("execution(public * chap07..*(..))")
+  public void commonTarget(){}
+  ```
+
+* **CacheAspect.java**
+
+  ```java
+  @Around("CommonPointcut.commonTarget()")
+  public Object execute(ProceedingJoinPoint joinPoint){
+    ...
+  }
+  ```
+
+* **ExeTimeAspect.java**
+
+  ```java
+  @Around("CommonPointcut.commonTarget()")
+  public Object measure(ProceedingJoinPoint joinPoint){
+    ...
+  }
+  ```
+
+> @Pointcut을 설정한 클래스는 빈으로 등록할 필요가 없다. @Around 애노테이션에서 해당 클래스에 접근 가능하면 해당 Pointcut을 사용할 수 있다.
