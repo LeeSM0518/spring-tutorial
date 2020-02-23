@@ -7,7 +7,7 @@
 * [Chapter3. 스프링 DI (spring-di)](https://github.com/LeeSM0518/spring-tutorial/tree/master/spring-di)
 * [Chapter4. 의존 자동 주입 (dependence-auto-injection)](https://github.com/LeeSM0518/spring-tutorial/tree/master/dependence-auto-injection)
 * [Chapter5. 컴포넌트 스캔 (component-scan)](https://github.com/LeeSM0518/spring-tutorial/tree/master/component-scan)
-* Chapter6. 빈 라이프사이클과 범위 (bean-lifecycle-and-scope)
+* [Chapter6. 빈 라이프사이클과 범위 (bean-lifecycle-and-scope)](https://github.com/LeeSM0518/spring-tutorial/tree/master/bean-lifecycle-and-scope)
 * Chapter7. AOP 프로그래밍 (aop-programming)
 * Chapter8. DB 연동 (db-peristalsis)
 * Chapter9. 스프링 MVC 시작하기 (start-spring-mvc)
