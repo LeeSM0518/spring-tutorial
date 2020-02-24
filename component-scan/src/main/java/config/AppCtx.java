@@ -17,6 +17,11 @@ public class AppCtx {
   }
 
   @Bean
+  public MemberDao memberDao2() {
+    return new MemberDao();
+  }
+
+  @Bean
   public ChangePasswordService changePasswordService() {
     return new ChangePasswordService();
   }

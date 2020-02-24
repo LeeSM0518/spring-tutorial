@@ -21,6 +21,9 @@ public class MainForSpring {
     BufferedReader reader =
         new BufferedReader(new InputStreamReader(System.in));
 
+    System.out.println(ctx.getBean("memberDao"));
+    System.out.println(ctx.getBean("memberDao2"));
+
     while (true) {
       System.out.println("명령어를 입력하세요: ");
       String command = reader.readLine();

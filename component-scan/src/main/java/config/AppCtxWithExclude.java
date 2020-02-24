@@ -11,12 +11,13 @@ import spring.MemberPrinter;
 
 @Configuration
 @ComponentScan(basePackages = {"spring"},
-    excludeFilters = @ComponentScan.Filter(type = FilterType.ASPECTJ, pattern = "spring.*Dao"))
-//  excludeFilters = @ComponentScan.Filter(type= FilterType.REGEX, pattern = "spring\\..*Dao"))
+//    excludeFilters = @ComponentScan.Filter(type = FilterType.ASPECTJ, pattern = "spring.*Dao"))
+  excludeFilters = @ComponentScan.Filter(type= FilterType.REGEX, pattern = "spring\\..*Dao"))
 public class AppCtxWithExclude {
 
   @Bean
-  public MemberDao memberDao() {
+//  public MemberDao memberDao() {
+  public MemberDao memberDao2() {
     return new MemberDao();
   }
 
