@@ -18,10 +18,12 @@ public class Main {
 //    chap07.ExeTimeCalculator calculator2 = new chap07.ExeTimeCalculator(new chap07.RecCalculator());
 //    calculator1.factorial(3);
 //    calculator2.factorial(3);
-    ExeTimeCalculator calculator =
-        new ExeTimeCalculator(new ImpeCalculator());
-    long result = calculator.factorial(3);
-    System.out.println(result);
+    Calculator calculator = new RecCalculator();
+    calculator.factorial(5);
+//    ExeTimeCalculator calculator =
+//        new ExeTimeCalculator(new ImpeCalculator());
+//    long result = calculator.factorial(3);
+//    System.out.println(result);
   }
 
 }
