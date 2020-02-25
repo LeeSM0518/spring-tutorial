@@ -16,12 +16,6 @@ import spring.MemberPrinter;
 public class AppCtxWithExclude {
 
   @Bean
-//  public MemberDao memberDao() {
-  public MemberDao memberDao2() {
-    return new MemberDao();
-  }
-
-  @Bean
   @Qualifier("printer")
   public MemberPrinter memberPrinter1() {
     return new MemberPrinter();

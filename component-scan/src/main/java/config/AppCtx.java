@@ -11,14 +11,17 @@ import spring.*;
 public class AppCtx {
 
   @Bean
-  @Qualifier("printer")
-  public MemberPrinter memberPrinter1() {
-    return new MemberPrinter();
+  public MemberDao memberDao() {
+    System.out.println("설정 클래스에서 생성");
+    MemberDao memberDao = new MemberDao();
+    memberDao.setName("설정 클래스");
+    return memberDao;
   }
 
   @Bean
-  public MemberDao memberDao2() {
-    return new MemberDao();
+  @Qualifier("printer")
+  public MemberPrinter memberPrinter1() {
+    return new MemberPrinter();
   }
 
   @Bean

@@ -17,12 +17,24 @@ public class MainForSpring {
     // AnnotationConfigApplicationContext 를 사용해서 스프링 컨테이너를 생성한다.
     //  설정 파일(AppCtx 클래스)로부터 생성할 객체와 의존 주입 대상을 정한다.
     ctx = new AnnotationConfigApplicationContext(AppCtx.class);
+    System.out.println(ctx.getClass().getMethods()[0].getName());
+    System.out.println(ctx.getClass().getMethods()[0].getParameters()[0].getName());
+//    System.out.println(ctx.getClass());
+    System.out.println(Object.class);
+    System.out.println();
+
+    System.out.println();
+
+    MemberDao memberDao = (MemberDao) ctx.getBean("memberDao");
+    System.out.println(memberDao.name);
 
     BufferedReader reader =
         new BufferedReader(new InputStreamReader(System.in));
 
+    System.out.println("3");
     System.out.println(ctx.getBean("memberDao"));
-    System.out.println(ctx.getBean("memberDao2"));
+    System.out.println("4");
+//    System.out.println(ctx.getBean("memberDao2"));
 
     while (true) {
       System.out.println("명령어를 입력하세요: ");
