@@ -9,7 +9,7 @@
 * [Chapter5. 컴포넌트 스캔 (component-scan)](https://github.com/LeeSM0518/spring-tutorial/tree/master/component-scan)
 * [Chapter6. 빈 라이프사이클과 범위 (bean-lifecycle-and-scope)](https://github.com/LeeSM0518/spring-tutorial/tree/master/bean-lifecycle-and-scope)
 * [Chapter7. AOP 프로그래밍 (aop-programming)](https://github.com/LeeSM0518/spring-tutorial/tree/master/aop-programming)
-* Chapter8. DB 연동 (db-peristalsis)
+* [Chapter8. DB 연동 (db-peristalsis)](https://github.com/LeeSM0518/spring-tutorial/tree/master/db-peristalsis)
 * Chapter9. 스프링 MVC 시작하기 (start-spring-mvc)
 * Chapter10. 스프링 MVC 프레임워크 동작 방식 (spring-mvc-behavior)
 * Chapter11. MVC 1: 요청 매핑, 커맨드 객체, 리다이렉트, 폼 태그, 모델 (mvc1)
