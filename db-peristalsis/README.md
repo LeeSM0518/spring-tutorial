@@ -617,3 +617,352 @@ AUTO_INCREMENT와 같은 자동 증가 칼럼을 가진 테이블에 값을 삽�
 
 # 5. MemberDao 테스트하기
 
+간단한 메인 클래스를 작성해서 MemberDao가 정상적으로 동작하는지 확인해보자.
+
+* **/main/MainForMemberDao.java**
+
+  ```java
+  package main;
+  
+  import config.AppCtx;
+  import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+  import spring.Member;
+  import spring.MemberDao;
+  
+  import java.time.LocalDateTime;
+  import java.time.format.DateTimeFormatter;
+  import java.util.List;
+  
+  public class MainForMemberDao {
+  
+    private static MemberDao memberDao;
+  
+    public static void main(String[] args) {
+      AnnotationConfigApplicationContext ctx =
+          new AnnotationConfigApplicationContext(AppCtx.class);
+  
+      memberDao = ctx.getBean(MemberDao.class);
+  
+      selectAll();
+      updateMember();
+      insertMember();
+  
+      ctx.close();
+    }
+  
+    private static void selectAll() {
+      System.out.println("----- selectAll");
+      int total = memberDao.count();
+      System.out.println("전체 데이터: " + total);
+      List<Member> members = memberDao.selectAll();
+      members.forEach(m ->
+          System.out.println(m.getId() + ":" + m.getEmail() + ":" + m.getName()));
+    }
+  
+    private static void updateMember() {
+      System.out.println("----- updateMember");
+      Member member = memberDao.selectByEmail("nalsm98@test.com");
+      String oldPw = member.getPassword();
+      String newPw = Double.toHexString(Math.random());
+      member.changePassword(oldPw, newPw);
+  
+      memberDao.update(member);
+      System.out.println("암호 변경: " + oldPw + " > " + newPw);
+    }
+  
+    private static DateTimeFormatter formatter =
+        DateTimeFormatter.ofPattern("MMddHHmmss");
+  
+    private static void insertMember() {
+      System.out.println("----- insertMember");
+  
+      String prefix = formatter.format(LocalDateTime.now());
+      Member member = new Member(prefix + "@test.com",
+          prefix, prefix, LocalDateTime.now());
+      memberDao.insert(member);
+      System.out.println(member.getName() + " 데이터 추가");
+    }
+  
+  }
+  ```
+
+* **실행 결과**
+
+  ```
+  ----- selectAll
+  전체 데이터: 1
+  1:nalsm98@test.com:min
+  ----- updateMember
+  암호 변경: 0x1.0563e72c47816p-1 > 0x1.55f52cd14d4a6p-2
+  ----- insertMember
+  0301215005 데이터 추가
+  ```
+
+<br>
+
+## 5.1. DB 연동 과정에서 발생 가능한 익셉션
+
+* **DB 연결 정보가 올바르지 않으면 다음과 같은 익셉션이 발생할 수 있다.**
+
+```
+...
+Exception in thread "main" org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection: ...
+Access denied for user 'kberhhnn'@'arjuna.db.elephantsql.com:5432'
+```
+
+DB 연결 정보는 DataSource에 있으므로 DataSource를 잘못 설정하면 연결을 구할 수 없다는 익셉션(CannotGetJdbcConnectionException)이 발생한다.
+
+<br>
+
+* **DB를 실행하지 않았거나 방화벽에 막혀 있어서 DB에 연결할 수 없다면 연결 자체를 할 수 없다는 에러 메시지가 출력된다. **
+
+```
+... CannotGetJdbcConnectionException: ...
+Communications link failure ...
+```
+
+<br>
+
+* **잘못된 쿼리를 사용하는 것도 주요 에러 원인이다.**
+
+  * 에러 예시
+
+    ```java
+    jdbcTemplate.update("update MEMBER set NAME = ?, PASSWORD = ? where" + "EMAIL = ?", member.getName(), member.getPassword(), member.getEmail()):
+    ```
+
+  * 쿼리
+
+    ```
+    update MEMBER set NAME = ?, PASSWORD = ? whereEMAIL = ?
+    ```
+
+    > where 문과 EMAIL이 붙으므로 잘못된 쿼리문이다.
+
+  * 익셉션
+
+    ```
+    ... BadSqlGarmmarException: ... : bad SQL grammer ...
+    MySQLSyntaxErrorException: ...
+    ```
+
+<br>
+
+# 6. 스프링의 익셉션 변환 처리
+
+SQL 문법이 잘못됐을 때 발생한 메시지를 보면 익셉션 클래스가 org.spring.framework.jdbc 패키지에 속한 **BadSqlGrammarException 클래스임을** 알 수 있다. 에러 메시지를 보면 BadSqlGrammarException이 발생한 이유는 MySQLSyntaxErrorException이 발생했기 때문이다.
+
+```
+org.springframework.jdbc.BadSqlGrammarException: ... 생략
+... 생략
+Caused by: com.mysql.jdbc.exceptions.jdbc4.MySQLSyntaxErrorException: ... 생략
+```
+
+<br>
+
+JDBC API 를 사용하는 과정에서 SQLException이 발생하면 이 익셉션을 알맞은 **DataAccessException으로 변환해서 발생한다.** 즉 다음과 유사한 방식으로 익셉션을 변환해서 재발생한다.
+
+```java
+try {
+  ... // JDBC 사용 코드
+} catch(SQLException ex) {
+  throw convertSqlToDataException(ex);
+}
+```
+
+이를 통해 JdbcTemplate은 이 익셉션을 DataAccessException을 상속받은 **BadSqlGrammarException으로 변환한다.**
+
+<br>
+
+스프링은 왜 SQLException을 그대로 전파하지 않고 SQLException을 DataAccessException으로 변환할까?
+
+주된 이유는 **연동 기술에 상관없이 동일하게 익셉션을 처리할 수 있도록 하기 위함이다.**
+
+![image](https://user-images.githubusercontent.com/43431081/75668064-0e323580-5cbc-11ea-9351-1d1c122b15aa.png)
+
+<br>
+
+스프링은 이 외에도 DuplicateKeyException, QueryTimeoutException 등 DataAccessException을 상속한 다양한 익셉션 클래스를 제공한다. 각 익셉션 클래스의 이름은 문제가 발생한 원인을 의미한다.
+
+DataAccessException은 RuntimeException이다. DataAccessException은 RuntimeException이므로 필요한 경우에만 익셉션을 처리하면 된다.
+
+```java
+// JDBC를 직접 사용하면 SQLException을 반드시 알맞게 처리해주어야 함
+try {
+  pstmt = conn.prepareStatement(someQuery);
+  ...
+} catch(SQLException ex) {
+  ... // SQLException을 알맞게 처리해 주어야 함
+}
+
+// 스프링을 사용하면 DataAccessException을 필요한 경우에만
+//	try-catch 로 처리해주면 된다.
+jdbcTemplate.update(someQuery, param1);
+```
+
+<br>
+
+# 7. 트랜잭션 처리
+
+두 개 이상의 쿼리를 한 작업으로 실행해야 할 때 사용하는 것이 **트랜잭션(transaction)이다.** 
+
+트랜잭션은 여러 쿼리를 논리적으로 하나의 작업으로 묶어준다. 
+
+쿼리 실행 결과를 취소하고 DB를 기존 상태로 되돌리는 것을 **롤백(rollback)이라고** 부른다. 반면에 트랜잭션으로 묶인 모든 쿼리가 성공해서 쿼리 결과를 DB에 실제로 반영하는 것을 **커밋(commit)이라고** 한다.
+
+트랜잭션을 시작하면 트랜잭션을 커밋하거나 롤백할 때 까지 실행한 쿼리들이 하나의 작업 단위가 된다.
+
+JDBC는 Connection의 **setAutoCommit(false)를 이용해서 트랜잭션을 시작하고 commit()과 rollback()을** 이용해서 트랜잭션을 반영(커밋)하거나 취소(롤백) 한다.
+
+<br>
+
+## 7.1. @Transactional을 이용한 트랜잭션 처리
+
+스프링이 제공하는 **@Transactional 애노테이션을** 사용하면 트랜잭션 범위를 매우 쉽게 지정할 수 있다.
+
+트랜잭션 범위에서 실행하고 싶은 **메서드에 @Transactional 애노테이션만** 붙이면 된다.
+
+```java
+@Transactional
+public void changePassword(String email, String oldPwd, String newPwd) {
+  Member member = memberDao.selectByEmail(email);
+  if (member == null)
+    throw new MemberNotFoundException();
+
+  member.changePassword(oldPwd, newPwd);
+
+  memberDao.update(member);
+}
+```
+
+* memberDao.selectByEmail() 쿼리와 member.changePassword() 쿼리가 한 트랜잭션에 묶인다.
+
+<br>
+
+@Transactional 애노테이션이 제대로 동작하려면 다음의 두 가지 내용을 스프링 설정에 추가해야 한다.
+
+* **플랫폼 트랜잭션 매니저(PlatformTransactionManager) 빈 설정**
+* **@Transactional 애노테이션 활성화 설정**
+
+<br>
+
+**설정 예시**
+
+```java
+@Configuration
+@EnableTransactionManagement
+public class AppCtx {
+
+  @Bean(destroyMethod = "close")
+  public DataSource dataSource() {
+    DataSource ds = new DataSource();
+    ... 생략
+    return ds;
+  }
+  
+  ... 생략
+  
+  @Bean
+  public PlatformTransactionManager transactionManager() {
+    DataSourceTransactionManager tm = new DataSourceTransactionManager();
+    tm.setDataSource(dataSource());
+    return tm;
+  }
+
+}
+```
+
+* **PlatformTransactionManager** : 스프링이 제공하는 트랜잭션 매니저 인터페이스
+  * 구현기술에 상관없이 동일한 방식으로 트랜잭션을 처리하기 위해 이 인터페이스를 사용
+  * dataSource 프로퍼티를 이용해서 트랜잭션 연동에 사용할 DataSource를 지정한다.
+* **@EnableTransactionManagement** : @Transactional 애노테이션이 붙은 메서드를 트랜잭션 범위에서 실행하는 기능을 활성화한다.
+  * 등록된 PlatformTransactionManager 빈을 사용해서 트랜잭션을 적용한다.
+
+<br>
+
+* **/spring/ChangePasswordService.java**
+
+  ```java
+  public class ChangePasswordService {
+  
+    private MemberDao memberDao;
+  
+    @Transactional
+    public void changePassword(String email, String oldPwd, String newPwd) {
+      Member member = memberDao.selectByEmail(email);
+      if (member == null)
+        throw new MemberNotFoundException();
+  
+      member.changePassword(oldPwd, newPwd);
+  
+      memberDao.update(member);
+    }
+  
+    public void setMemberDao(MemberDao memberDao) {
+      this.memberDao = memberDao;
+    }
+  
+  }
+  ```
+
+* **/config/AppCtx.java**
+
+  ```java
+  @Configuration
+  @EnableTransactionManagement
+  public class AppCtx {
+  
+    @Bean(destroyMethod = "close")
+    public DataSource dataSource() {
+      DataSource ds = new DataSource();
+      ... 생략
+      return ds;
+    }
+  
+    @Bean
+    public MemberDao memberDao() {
+      return new MemberDao(dataSource());
+    }
+  
+    @Bean
+    public PlatformTransactionManager transactionManager() {
+      DataSourceTransactionManager tm = new DataSourceTransactionManager();
+      tm.setDataSource(dataSource());
+      return tm;
+    }
+    
+    @Bean
+    public ChangePasswordService changePwdSvc() {
+      ChangePasswordService pwdSvc = new ChangePasswordService();
+      pwdSvc.setMemberDao(memberDao());
+      return pwdSvc;
+    }
+  
+  }
+  ```
+
+* **/spring/MainForCPS.java**
+
+  ```java
+  public class MainForCPS {
+  
+    public static void main(String[] args) {
+      AnnotationConfigApplicationContext ctx =
+          new AnnotationConfigApplicationContext(AppCtx.class);
+  
+      ChangePasswordService cps =
+          ctx.getBean("changePwdSvc", ChangePasswordService.class);
+  
+      try {
+        cps.changePassword("nalsm98@test.com", "1234", "1111");
+      } catch (MemberNotFoundException e) {
+        System.out.println("회원 데이터가 존재하지 않습니다.");
+      } catch (WrongPasswordException e) {
+        System.out.println("암호가 올바르지 않습니다.");
+      }
+  
+      ctx.close();
+    }
+  
+  }
+  ```

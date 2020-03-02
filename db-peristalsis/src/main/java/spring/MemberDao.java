@@ -41,32 +41,39 @@ public class MemberDao {
     return results.isEmpty() ? null : results.get(0);
   }
 
+  //  public void insert(Member member) {
+//    // GeneratedKeyHolder : 자동 생성된 키값을 구해주는 KeyHolder 구현 클래스이다.
+////    KeyHolder keyHolder = new GeneratedKeyHolder();
+//    // PreparedStatement 객체와 KeyHolder 객체를 파라미터로 갖는다.
+//    jdbcTemplate.update(conn -> {
+//      // 람다식을 통해서 PreparedStatement 객체를 구현해서 넘기고,
+//      //  prepareStatement() 메서드의 두 번째 파라미터로 String 배열을 넘기는데
+//      //  이 두 번째 파라미터는 자동 생성되는 키 칼럼 목록을 지정할 때 사용한다.
+//      PreparedStatement pstmt = conn.prepareStatement(
+//          "insert into MEMBER (EMAIL, PASSWORD, NAME, REGDATE) " +
+//              "values (?, ?, ?, ?)",
+//          new String[] {"ID"});
+//      pstmt.setString(1, member.getEmail());
+//      pstmt.setString(2, member.getPassword());
+//      pstmt.setString(3, member.getName());
+//      pstmt.setTimestamp(4, Timestamp.valueOf(member.getRegisterDateTime()));
+//      return pstmt;
+////    }, keyHolder);
+//    });
+//    // KeyHolder에 보관된 키값을 getKey() 메서드를 이용해서 구한다.
+////    Number keyValue = keyHolder.getKey();
+////    member.setId(keyValue.longValue());
+//  }
   public void insert(Member member) {
-    // GeneratedKeyHolder : 자동 생성된 키값을 구해주는 KeyHolder 구현 클래스이다.
-    KeyHolder keyHolder = new GeneratedKeyHolder();
-    // PreparedStatement 객체와 KeyHolder 객체를 파라미터로 갖는다.
-    jdbcTemplate.update(conn -> {
-      // 람다식을 통해서 PreparedStatement 객체를 구현해서 넘기고,
-      //  prepareStatement() 메서드의 두 번째 파라미터로 String 배열을 넘기는데
-      //  이 두 번째 파라미터는 자동 생성되는 키 칼럼 목록을 지정할 때 사용한다.
-      PreparedStatement pstmt = conn.prepareStatement(
-          "insert into MEMBER (EMAIL, PASSWORD, NAME, REGDATE) " +
-              "values (?, ?, ?, ?)",
-          new String[] {"ID"});
-      pstmt.setString(1, member.getEmail());
-      pstmt.setString(2, member.getPassword());
-      pstmt.setString(3, member.getName());
-      pstmt.setTimestamp(4, Timestamp.valueOf(member.getRegisterDateTime()));
-      return pstmt;
-    }, keyHolder);
-    // KeyHolder에 보관된 키값을 getKey() 메서드를 이용해서 구한다.
-    Number keyValue = keyHolder.getKey();
-    member.setId(keyValue.longValue());
+    jdbcTemplate.update("insert into MEMBER (EMAIL, PASSWORD, NAME, REGDATE) " +
+            "values (?, ?, ?, ?)",
+        member.getEmail(), member.getPassword(), member.getName(),
+        Timestamp.valueOf(member.getRegisterDateTime()));
   }
 
   public void update(Member member) {
     jdbcTemplate.update(
-        "update MEMBER set NAME = ?, PASSWORD = ?, where EMAIL = ?",
+        "update MEMBER set NAME = ?, PASSWORD = ? where EMAIL = ?",
         member.getName(), member.getPassword(), member.getEmail());
   }
 

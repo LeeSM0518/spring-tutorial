@@ -13,6 +13,8 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile("org.slf4j:slf4j-api:1.7.7")
+    compile('ch.qos.logback:logback-classic:1.1.2')
     implementation 'org.springframework:spring-context:5.2.4.RELEASE'
     implementation 'org.springframework:spring-jdbc:5.2.4.RELEASE'
     implementation 'org.apache.tomcat:tomcat-jdbc:10.0.0-M1'
