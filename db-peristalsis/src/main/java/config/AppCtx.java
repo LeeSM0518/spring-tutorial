@@ -6,8 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import spring.ChangePasswordService;
-import spring.MemberDao;
+import spring.*;
 
 @Configuration
 @EnableTransactionManagement
@@ -26,6 +25,9 @@ public class AppCtx {
 
     ds.setInitialSize(2);
     ds.setMaxActive(10);
+    ds.setTestWhileIdle(true);
+    ds.setMinEvictableIdleTimeMillis(60000 * 3);
+    ds.setTimeBetweenEvictionRunsMillis(10 * 1000);
     return ds;
   }
 
@@ -42,10 +44,33 @@ public class AppCtx {
   }
 
   @Bean
+  public MemberRegisterService memberRegSvc() {
+    return new MemberRegisterService(memberDao());
+  }
+
+  @Bean
   public ChangePasswordService changePwdSvc() {
     ChangePasswordService pwdSvc = new ChangePasswordService();
     pwdSvc.setMemberDao(memberDao());
     return pwdSvc;
+  }
+
+  @Bean
+  public MemberPrinter memberPrinter() {
+    return new MemberPrinter();
+  }
+
+  @Bean
+  public MemberListPrinter listPrinter() {
+    return new MemberListPrinter(memberDao(), memberPrinter());
+  }
+
+  @Bean
+  public MemberInfoPrinter infoPrinter() {
+    MemberInfoPrinter infoPrinter = new MemberInfoPrinter();
+    infoPrinter.setMemberDao(memberDao());
+    infoPrinter.setPrinter(memberPrinter());
+    return infoPrinter;
   }
 
 }
