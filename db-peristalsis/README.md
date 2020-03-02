@@ -966,3 +966,234 @@ public class AppCtx {
   
   }
   ```
+
+트랜잭션을 확인하기 위해서 스프링이 출력하는 로그 메시지를 보자. 트랜잭션과 관련 **로그 메시지를 추가로 출력하기 위해 Logback를** 사용해보자.
+
+<br>
+
+* **build.gradle** : dependency 추가
+
+  ```
+  plugins {
+      id 'java'
+  }
+  
+  group 'org.example'
+  version '1.0-SNAPSHOT'
+  
+  sourceCompatibility = 1.8
+  
+  repositories {
+      mavenCentral()
+  }
+  
+  dependencies {
+      testCompile group: 'junit', name: 'junit', version: '4.12'
+      compile("org.slf4j:slf4j-api:1.7.7")
+      compile('ch.qos.logback:logback-classic:1.1.2')
+      implementation 'org.springframework:spring-context:5.2.4.RELEASE'
+      implementation 'org.springframework:spring-jdbc:5.2.4.RELEASE'
+      implementation 'org.apache.tomcat:tomcat-jdbc:10.0.0-M1'
+      implementation 'org.lucee:postgresql:8.3-606.jdbc4'
+  }
+  ```
+
+* **실행 결과**
+
+  ```
+  2020-03-02 21:25:51,657 DEBUG o.s.j.d.DataSourceTransactionManager - Creating new transaction with name [spring.ChangePasswordService.changePassword]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT
+  2020-03-02 21:25:52,062 DEBUG o.s.j.d.DataSourceTransactionManager - Acquired Connection [ProxyConnection[PooledConnection[org.postgresql.jdbc4.Jdbc4Connection@1a760689]]] for JDBC transaction
+  2020-03-02 21:25:52,064 DEBUG o.s.j.d.DataSourceTransactionManager - Switching JDBC Connection [ProxyConnection[PooledConnection[org.postgresql.jdbc4.Jdbc4Connection@1a760689]]] to manual commit
+  2020-03-02 21:25:52,072 DEBUG o.s.j.c.JdbcTemplate - Executing prepared SQL query
+  2020-03-02 21:25:52,072 DEBUG o.s.j.c.JdbcTemplate - Executing prepared SQL statement [select * from MEMBER where EMAIL = ?]
+  2020-03-02 21:25:52,139 DEBUG o.s.j.c.JdbcTemplate - Executing prepared SQL update
+  2020-03-02 21:25:52,139 DEBUG o.s.j.c.JdbcTemplate - Executing prepared SQL statement [update MEMBER set NAME = ?, PASSWORD = ? where EMAIL = ?]
+  2020-03-02 21:25:52,179 DEBUG o.s.j.d.DataSourceTransactionManager - Initiating transaction commit
+  2020-03-02 21:25:52,179 DEBUG o.s.j.d.DataSourceTransactionManager - Committing JDBC transaction on Connection [ProxyConnection[PooledConnection[org.postgresql.jdbc4.Jdbc4Connection@1a760689]]]
+  2020-03-02 21:25:52,219 DEBUG o.s.j.d.DataSourceTransactionManager - Releasing JDBC Connection [ProxyConnection[PooledConnection[org.postgresql.jdbc4.Jdbc4Connection@1a760689]]] after transaction
+  ```
+
+  * DataSourceTransactionManager - Switching JDBC Connection
+
+    : 트랜잭션 시작
+
+  * DataSourceTransactionManager - Initiating transaction commit
+
+    : 트랜잭션 커밋
+
+  * DataSourceTransactionManager - Committing JDBC transaction on Connection
+
+    : 트랜잭션 커밋 중
+
+<br>
+
+어떤 것이 트랜잭션을 시작하고, 커밋하고, 롤백하는지를 살펴보도록 하자.
+
+<br>
+
+## 7.2. @Transactional과 프록시
+
+스프링은 @Transactional 애노테이션을 이용해서 트랜잭션을 처리하기 위해 **내부적으로 AOP를 사용한다.**
+
+실제로 @Transactional 애노테이션을 적용하기 위해 **@EnableTransactionManagement 태그를 사용하면 스프링은 @Transactional 애노테이션이 적용된 빈 객체를 찾아서 알맞은 프록시 객체를 생성한다.**
+
+![image](https://user-images.githubusercontent.com/43431081/75677707-6e7ea280-5ccf-11ea-8cba-e58cbbf74d7d.png)
+
+* ChangePasswordService 클래스의 메서드에 @Transactional 애노테이션이 적용되어 있으므로 스프링은 트랜잭션 기능을 적용한 프록시 객체를 생성한다.
+  * MainForCPS 클래스에서 getBean() 을 실행해서 changePwdSvc 객체를 가져오면 ChangePasswordService 객체 대신에 **트랜잭션 처리를 위해 생성한 프록시 객체를 리턴한다.**
+* 이 프록시 객체를 @Transactional 애노테이션이 붙은 메서드를 호출하면 **PlatformTransactionManager를** 사용해서 트랜잭션을 시작한다.
+
+<br>
+
+## 7.3. @Transactional 적용 메서드의 롤백 처리
+
+롤백을 처리하는 주체는 프록시 객체이다.
+
+* **예시**
+
+  ```java
+  try {
+    cps.changePassword("nalsm98@test.com", "1234", "1111");
+  } catch (MemberNotFoundException e) {
+    System.out.println("회원 데이터가 존재하지 않습니다.");
+  } catch (WrongPasswordException e) {
+    System.out.println("암호가 올바르지 않습니다.");
+  }
+  ```
+
+  * **WrongIdPasswordException이** 발생했을 때 트랜잭션이 롤백된 것을 알 수 있다.
+
+  * 실제로 @Transactional을 처리하기 위한 프록시 객체는 원본 객체의 메서드를 실행하는 과정에서 **RuntimeException이 발생하면 아래와 같이 트랜잭션을 롤백한다.**
+
+    ![image](https://user-images.githubusercontent.com/43431081/75678214-79860280-5cd0-11ea-8f1a-b7fe2d24afda.png)
+
+<br>
+
+별로 설정을 추가하지 않으면 발생한 익셉션이 **RuntimeException일 때 트랜잭션을 롤 백한다.**
+
+JdbcTemplate은 DB 연동 과정에 문제가 있으면 익셉션이 발생해 프록시는 트랜잭션을 롤백한다.
+
+SQLException은 RuntimeException을 상속하고 있지 않으므로 **SQLException이 발생하면 트랜잭션을 롤백하지 않는다.** SQLException이 발생하는 경우에도 트랜잭션을 롤백하고 싶다면 **@Transactional의 rollbackFor 속성을 사용해야 한다.**
+
+```java
+@Transactional(rollbackFor = SQLException.class)
+public void someMethod() {
+  ...
+}
+```
+
+<br>
+
+rollbackFor와 반대 설정을 제공하는 것이 **noRollbackFor 속성이다.** 이 속성은 지정한 익셉션이 발생해도 **롤백시키지 않고 커밋할 익셉션 타입을 지정할 때 사용한다.**
+
+<br>
+
+## 7.4. @Transactional의 주요 속성
+
+| 속성        | 타입        | 설명                                                         |
+| ----------- | ----------- | ------------------------------------------------------------ |
+| value       | String      | 트랜잭션을 관리할 때 사용할 PlatformTransactionManager<br />빈의 이름을 지정한다. 기본값은 " " 이다. |
+| propagation | Propagation | 트랜잭션 전파 타입을 지정한다.<br />기본값은 Propagation.REQUIRED 이다. |
+| isolation   | Isolation   | 트랜잭션 격리 레벨을 지정한다.<br />기본값은 Isolation.DEFAULT 이다. |
+| timeout     | int         | 트랜잭션 제한 시간을 지정한다. 기본값은 -1로 이 경우<br />데이터베이스의 타임아웃 시간을 사용한다. 초 단위로 지정한다. |
+
+<br>
+
+@Transactional 애노테이션의 value 속성값이 없으면 등록된 빈 중에서 타입이 PlatformTransactionManager인 빈을 사용한다.
+
+```java
+// AppCtx 설정 클래스의 플랫폼 트랜잭션 매니저 빈 설정
+@Bean
+public PlatformTransactionManager transactionManager() {
+  DataSourceTransactionManager tm = new DataSourceTransactionManager();
+  tm.setDataSource(dataSource());
+  return tm;
+}
+```
+
+<br>
+
+* **Propagation 열거 타입의 주요 값**
+
+  | 값            | 설명                                                         |
+  | ------------- | ------------------------------------------------------------ |
+  | REQUIRED      | 메서드를 수행하는 데 트랜잭션이 필요하다는 것을 의미한다.    |
+  | MANDATORY     | 메서드를 수행하는 데 트랜잭션이 필요하다는 것을 의미한다.<br />하지만 REQUIRED와 달리 진행 중인 트랜잭션이 존재하지 않을 경우 익셉션 발생 |
+  | REQUIRES_NEW  | 항상 새로운 트랜잭션을 시작한다.                             |
+  | SUPPORTS      | 메서드가 트랜잭션을 필요로 하지는 않지만,<br />진행 중인 트랜잭션이 존재하면 트랜잭션을 사용한다는 것을 의미한다. |
+  | NOT_SUPPORTED | 메서드가 트랜잭션을 필요로 하지 않음을 의미한다.<br />진행 중인 트랜잭션이 존재할 경우 메서드가 실행되는 동안<br />트랜잭션은 일시 중지되고 메서드 실행이 종료된 후에 트랜잭션을 계속 진행한다. |
+  | NEVER         | 메서드가 트랜잭션을 필요로 하지 않는다.<br />만약 진행 중인 트랜잭션이 존재하면 익셉션이 발생한다. |
+  | NESTED        | 진행 중인 트랜잭션이 존재하면 기존 트랜잭션에 중첩된 트랜잭션에서<br />메서드를 실행한다. |
+
+<br>
+
+* **Isolation 열거 타입에 정의된 값**
+
+  | 값               | 설명                                                         |
+  | ---------------- | ------------------------------------------------------------ |
+  | DEFAULT          | 기본 설정을 사용한다.                                        |
+  | READ_UNCOMMITTED | 다른 트랜잭션이 커밋하지 않은 데이터를 읽을 수 있다.         |
+  | READ_COMMITED    | 다른 트랜잭션이 커밋한 데이터를 읽을 수 있다.                |
+  | REPEATABLE_READ  | 처음에 읽어 온 데이터와 두 번째 읽어 온 데이터가 동일한 값을 갖는다. |
+  | SERIALIZABLE     | 동일한 데이터에 대해서 동시에 두 개 이상의 트랜잭션을<br />수행할 수 없다. |
+
+> **트랜잭션의 격리 레벨(Isolation)은** 동시에 DB에 접근할 때 그 접근을 어떻게 제어할지에 대한 설정을 다룬다.
+
+<br>
+
+## 7.5. @EnableTransactionManagement 애노테이션의 주요 속성
+
+| 속성             | 설명                                                         |
+| ---------------- | ------------------------------------------------------------ |
+| proxyTargetClass | 클래스를 이용해서 프록시를 생성할지 여부를 지정한다.<br />기본값은 false로서 인터페이스를 이용해서 프록시를 생성한다. |
+| order            | AOP 적용 순서를 지정한다.<br />기본값은 가장 낮은 우선순위에 해당하는 int의 최댓값이다. |
+
+<br>
+
+## 7.6. 트랜잭션 전파
+
+* **예시**
+
+  ```java
+  public class ChangePasswordService {
+  
+    private MemberDao memberDao;
+  
+    @Transactional
+    public void changePassword(String email, String oldPwd, String newPwd) {
+      Member member = memberDao.selectByEmail(email);
+      if (member == null)
+        throw new MemberNotFoundException();
+  
+      member.changePassword(oldPwd, newPwd);
+  
+      memberDao.update(member);
+    }
+  
+    public void setMemberDao(MemberDao memberDao) {
+      this.memberDao = memberDao;
+    }
+  
+  }
+  
+  public class MemberDao {
+  
+    private JdbcTemplate jdbcTemplate;
+  
+    ... 생략
+  
+    public void update(Member member) {
+      jdbcTemplate.update(
+          "update MEMBER set NAME = ?, PASSWORD = ? where EMAIL = ?",
+          member.getName(), member.getPassword(), member.getEmail());
+    }
+  
+  }
+  ```
+
+  * MemberDao의 update() 메서드에 @Transactional 이 붙어 있지 않지만 JdbcTemplate 클래스에 트랜잭션 범위에서 쿼리를 실행할 수 있다.
+
+* **실행 흐름**
+
+  ![image](https://user-images.githubusercontent.com/43431081/75680989-041d3080-5cd6-11ea-995f-912ead1a867a.png)
+
