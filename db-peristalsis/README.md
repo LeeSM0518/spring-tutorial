@@ -107,7 +107,7 @@ public void insert(Member member) {
 
 ### 커넥션 풀이란?
 
-자파 프로그램에서 DBMS로 커넥션을 생성하는 시간은 매우 길기 때문에 DB 커넥션을 생성하는 시간은 전체 성능에 영향을 줄 수 있다.
+자바 프로그램에서 DBMS로 커넥션을 생성하는 시간은 매우 길기 때문에 DB 커넥션을 생성하는 시간은 전체 성능에 영향을 줄 수 있다.
 
 최초 연결에 따른 응답 속도 저하와 동시 접속자가 많을 때 발생하는 부하를 줄이기 위해 사용하는 것이 **커넥션 풀이다.** 커넥션 풀은 **일정 개수의 DB 커넥션을 미리 만들어두는 기법이다.**
 
@@ -197,7 +197,7 @@ DB를 사용해서 MemberDao 클래스를 구현할 것이므로 이전 코드�
 
 ## 3.1. Tomcat JDBC의 주요 프로퍼티
 
-Tomcat JDBC 모듈의 Datasource 클래스는 커넥션 풀 기능을 제공하는 클래스이다.
+Tomcat JDBC 모듈의 DataSource 클래스는 커넥션 풀 기능을 제공하는 클래스이다.
 
 DataSource 클래스는 커넥션을 몇 개 만들지 지정할 수 있는 메서드를 제공한다.
 
@@ -996,6 +996,25 @@ public class AppCtx {
       implementation 'org.apache.tomcat:tomcat-jdbc:10.0.0-M1'
       implementation 'org.lucee:postgresql:8.3-606.jdbc4'
   }
+  ```
+
+* **/java/resources/logback.xml**
+
+  ```xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  
+  <configuration>
+      <appender name = "stdout" class="ch.qos.logback.core.ConsoleAppender">
+          <encoder>
+              <pattern>%d %5p %c{2} - %m%n</pattern>
+          </encoder>
+      </appender>
+      <root level="INFO">
+          <appender-ref ref="stdout"/>
+      </root>
+  
+      <logger name="org.springframework.jdbc" level="DEBUG"/>
+  </configuration>
   ```
 
 * **실행 결과**
