@@ -18,8 +18,8 @@ public class Main {
     while (true) {
       System.out.println("========================");
       System.out.println("결제 방식 선택");
-      System.out.println("1. 삼성페이 결제");
-      System.out.println("2. 휴대폰 결제");
+      System.out.println("1. 휴대폰 결제");
+      System.out.println("2. 삼성 페이 결제");
       System.out.println("3. 종료하기");
       System.out.println("========================");
       String menu = scanner.nextLine();

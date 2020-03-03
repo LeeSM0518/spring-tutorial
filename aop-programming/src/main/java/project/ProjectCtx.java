@@ -20,6 +20,7 @@ public class ProjectCtx {
   public PaymentService paymentCellphoneService() {
     return new CellPhonePay();
   }
+
   @Bean
   public PaymentService paymentSamsungPayService() {
     return new SamsungPay();
