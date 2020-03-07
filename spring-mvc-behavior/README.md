@@ -104,5 +104,108 @@ public class MvcConfig {
 # 4. WebMvcConfigurer 인터페이스와 설정
 
 * **@EnableWebMvc**
+
   * @Controller 애노테이션을 붙인 컨트롤러를 위한 설정을 생성한다.
   * WebConfigurer 타입의 빈을 이용해서 MVC 설정을 추가로 생성한다.
+
+* **/java/config/MvcConfig.java**
+
+  ```java
+  @Configuration
+  // @EnableWebMvc : 스프링 MVC 설정을 활성화한다.
+  @EnableWebMvc
+  public class MvcConfig implements WebMvcConfigurer {
+  
+    @Override
+    // DispatcherServlet의 매핑 경로를 '/'로 주었을 때,
+    //  JSP/HTML/CSS 등을 올바르게 처리하기 위한 설정을 추가한다.
+    public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+      configurer.enable();
+    }
+  
+    @Override
+    // JSP를 이용해서 컨트롤러의 실행
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+      registry.jsp("/WEB-INF/view/", ".jsp");
+    }
+  
+  }
+  ```
+
+  * @Configuration 애노테이션을 붙였으므로 컨테이너 빈으로 등록된다.
+  * @EnableWebMvc 애노테이션을 사용하면 WebMvcConfigurer 타입의 빈 객체의 메서드를 호출해서 MVC 설정을 추가한다.
+
+<br>
+
+디폴트 메서드를 사용해서 WebMvcConfigurer 인터페이스의 메서드에 기본 구현을 제공하고 있다.
+
+```java
+public interface WebMvcConfigurer {
+  
+  default void configurePathMatch(PathMatchConfigurer configurer) {
+  }
+  
+  default void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+  }
+  
+  default void addFormatters(FormatterRegistry registry) {
+  }
+  
+  default void addInterceptors(InterceptorRegistry registry) {
+  }
+  
+  default void configureViewResolvers(ViewResolverRegistry registry) {
+  }
+  
+  ... 생략
+  
+}
+```
+
+* 기본 구현은 모두 빈 구현이다. 이 인터페이스를 상속한 설정 클래스는 재정의가 필요한 메서드만 구현하면 된다.
+
+<br>
+
+# 5. JSP를 위한 ViewResolver
+
+컨트롤러 처리 결과를 JSP를 이용해서 생성하기 위해 다음 설정을 사용한다.
+
+```java
+@Configuration
+@EnableWebMvc
+public class MvcConfig implements WebMvcConfigurer {
+  
+  @Override
+  public void configureViewResolvers(ViewResolverRegistry registry) {
+    registry.jsp("/WEB-INF/view/", ".jsp");
+  }
+  
+}
+```
+
+* **configureViewResolvers()** 
+  * registry 파라미터를 통해 jsp() 메서드를 사용하면 <u>JSP를 위한 ViewResolver를 설정할 수 있다.</u>
+
+<br>
+
+위 설정은 InternalResourceViewResolver 클래스를 이용해서 다음 설정과 같은 빈을 등록한다.
+
+```java
+@Bean 
+public ViewResolver viewResolver() {
+  InternalResourceViewResolver vr = new InternalResourceViewResolver();
+  vr.setPrefix("/WEB-INF/view");
+  vr.setSuffix(".jsp");
+  return vr;
+}
+```
+
+* DispatcherServlet이 ViewResolver에게 뷰 이름에 해당하는 View 객체를 요청한다.
+* 이때 **InternalResourceViewResolver는 "prefix + 뷰이름 + suffix"에** 해당하는 경로를 뷰 코드로 사용하는 InternalResourceView 타입의 View 객체를 리턴한다.
+
+<br>
+
+DispatcherServlet은 컨트롤러의 실행 결과를 HandlerAdapter를 통해서 ModelAndView 형태로 받는다.
+
+Model에 담긴 값은 View 객체에 Map 형식으로 전달된다.
+
