@@ -209,3 +209,137 @@ DispatcherServlet은 컨트롤러의 실행 결과를 HandlerAdapter를 통해�
 
 Model에 담긴 값은 View 객체에 Map 형식으로 전달된다.
 
+```java
+@Controller
+public class HelloController {
+  
+  @RequestMapping("/hello")
+  public String hello(Model model,
+                     @RequestParam(value = "name", required = false) String name) {
+    model.addAttribute("greeting", "안녕하세요, " + name);
+    return "hello";
+  }
+  
+}
+```
+
+* DispatcherServlet은 View 객체에 응답 생성을 요청할 때 greeting 키를 갖는 Map 객체를 View 객체에 전달한다.
+* InternalResourceView는 Map 객체에 담겨 있는 키 값을 request.setAttribute()를 이용해서 request의 속성에 저장한다.
+
+<br>
+
+결과적으로 컨트롤러에서 지정한 Model 속성은 request 객체 속성으로 JSP에 전달되기 때문에 JSP는 다음과 같이 모델에 지정한 속성 이름을 사용해서 값을 사용할 수 있다.
+
+<br>
+
+# 6. 디폴트 핸들러와 HandlerMapping의 우선순위
+
+* **/webapp/web.xml**
+
+  ```xml
+  ...
+  <servlet-mapping>
+    <servlet-name>dispatcher</servlet-name>
+    <url-pattern>/</url-pattern>
+  </servlet-mapping>
+  ...
+  ```
+
+  * 매핑 경로가 "/" 인 경우 **.jsp로 끝나는 요청을 제외한 모든 요청을** DispatcherServlet이 처리한다.
+  * @EnableWebMvc 애노테이션이 등록하는 HandlerMapping은 **@Controller 애노테이션을 적용한 빈 객체가 처리할 수 있는 요청 경로만** 대응할 수 있다.
+  * 요청을 처리할 수 있는 컨트롤러 객체를 찾지 못하면 DispatcherServlet은 **404 응답을 전송한다.**
+
+<br>
+
+잘못된 경로를 처리하기 위한 컨트롤러 객체를 직접 구현할 수도 있지만, 그보다는 **WebMvcConfigurer의 configureDefaultServletHandling() 메서드를** 사용하는 것이 편리하다.
+
+```java
+@Configuration
+@EnableWebMvc
+public class MvcConfig implements WebMvcConfigurer {
+  
+  @Override
+  public void configureDefaultServletHandling(
+  	DefaultServletHandlerConfigurer configurer) {
+    configurer.enable();
+  }
+  
+}
+```
+
+* **enable() 메서드는** 두 빈 객체를 추가한다.
+  * DefaultServletHttpRequestHandler
+    * 클라이언트의 모든 요청을 WAS(톰켓)가 제공하는 디폴트 서블릿에 전달한다.
+  * SimpleUrlHandlerMapping
+    * 모든 경로("/**")를 DefaultServletHttpRequestHandler를 이용해서 처리하도록 설정한다.
+
+<br>
+
+@EnableWebMvc 애노테이션이 등록하는 **RequestMappingHandlerMapping의 적용 우선순위가** DefaultServletHandlerConfigurer.enable() 메서드가 등록하는 **SimpleUrlHandlerMapping의 우선순위보다 높다.**
+
+그러므로 웹 브라우저의 요청이 들어오면 DispatcherServlet은 다음과 같은 방식으로 요청을 처리한다.
+
+1. RequestMappingHandlerMapping 을 사용해서 요청을 처리할 핸들러를 검색한다.
+   * 존재하면 해당 컨트롤러에서 처리
+2. 존재하지 않으면 SimpleUrlHandlerMapping을 사용해서 요청을 처리할 핸들러를 검색한다.
+   1. SimpleUrlHandlerMapping은 모든 경로에 대해 DefaultServletHttpRequestHandler를 리턴한다.
+   2. DispatcherServlet은 DefaultServletHttpRequestHandler에 처리를 요청한다.
+   3. DefaultServletHttpRequestHandler는 디폴트 서블릿에 처리를 위임한다.
+
+<br>
+
+# 7. 직접 설정 예
+
+@EnableWebMvc 애노테이션을 사용하지 않아도 스프링 MVC를 사용할 수 있다.
+
+* **java/config/MvcConfig.java**
+
+  ```java
+  @Configuration
+  public class MvcConfig {
+  
+    @Bean
+    public HandlerMapping handlerMapping() {
+      RequestMappingHandlerMapping hm =
+          new RequestMappingHandlerMapping();
+      hm.setOrder(0);
+      return hm;
+    }
+    
+    @Bean
+    public HandlerAdapter handlerAdapter() {
+      return new RequestMappingHandlerAdapter();
+    }
+    
+    @Bean
+    public HandlerMapping simpleHandlerMapping() {
+      SimpleUrlHandlerMapping hm = new SimpleUrlHandlerMapping();
+      Map<String, Object> pathMap = new HashMap<>();
+      pathMap.put("/**", defaultServletHandler());
+      hm.setUrlMap(pathMap);
+      return hm;
+    }
+  
+    @Bean
+    public HttpRequestHandler defaultServletHandler() {
+      return new DefaultServletHttpRequestHandler();
+    }
+    
+    @Bean
+    public HandlerAdapter requestHandlerAdapter() {
+      return new HttpRequestHandlerAdapter();
+    }
+    
+    @Bean
+    public ViewResolver viewResolver() {
+      InternalResourceViewResolver vr = new InternalResourceViewResolver();
+      vr.setPrefix("/WEB-INF/view/");
+      vr.setSuffix(".jsp");
+      return vr;
+    }
+    
+  }
+  ```
+
+  
+
