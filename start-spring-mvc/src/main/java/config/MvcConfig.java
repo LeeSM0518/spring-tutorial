@@ -26,8 +26,8 @@ import java.util.Map;
 public class MvcConfig /*implements WebMvcConfigurer*/ {
 
 //  @Override
-//  // DispatcherServlet의 매핑 경로를 '/'로 주었을 때,
-//  //  JSP/HTML/CSS 등을 올바르게 처리하기 위한 설정을 추가한다.
+  // DispatcherServlet의 매핑 경로를 '/'로 주었을 때,
+  //  JSP/HTML/CSS 등을 올바르게 처리하기 위한 설정을 추가한다.
 //  public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
 //    configurer.enable();
 //  }
