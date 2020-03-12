@@ -507,3 +507,534 @@ public class RegisterController {
   * **"/"로 시작하지 않으면** 현재 경로를 기준으로 상대 경로를 사용한다.
   * **완전한 URL을 사용하면** 해당 경로로 리다이렉트한다.
     * ex) redirect:http://localhost8080/register/step1
+
+<br>
+
+# 6. 커맨드 객체를 이용해서 요청 파라미터 사용하기
+
+* **회원 가입 요청의 form 처리**
+
+  ```java
+  public class RegisterController {
+    
+    ...
+    @PostMapping("/register/step3")
+    public String handleStep3(HttpServletRequest request) {
+      String email = request.getParameter("email");
+      String name = request.getParameter("name");
+      String password = request.getParameter("password");
+      String confirmPassword = request.getParameter("confirmPassword");
+      
+      RegisterRequest regReq = new RegisterRequest();
+      regReq.setEmail(email);
+      regReq.setName(name);
+      ...
+    }
+    
+  }
+  ```
+
+  * 위 코드는 올바르게 동작하지만, 요청 파라미터 개수가 증가할 때마다 메서드의 코드 길이도 함께 길어진다.
+
+<br>
+
+스프링은 위와 같은 불편함을 줄이기 위해 **요청 파라미터의 값을 커맨드(command) 객체에 담아주는 기능을 제공한다.**
+
+요청 파라미터의 값을 전달받을 수 있는 세터 메서드를 포함하는 객체를 커맨드 객체로 사용하면 된다.
+
+```java
+@PostMapping("/register/step3")
+public String handleStep3(RegisterRequest regReq) {
+  ...
+}
+```
+
+* RegisterRequest 클래스에는 setEmail(), setName(), setPassword(), setConfirmPassword() 메서드가 있다.
+* 스프링은 이들 메서드를 사용해서 email, name, password, confirmPassword 요청 파라미터 의 값을 커맨드 객체에 복사한 뒤 regReq 파라미터로 전달한다.
+* 즉 **스프링 MVC가 handleStep3() 메서드에 전달한 RegisterRequest 객체를 생성하고 그 객체의 세터 메서드를 이용해서 일치하는 요청 파라미터의 값을 전달한다.**
+
+<br>
+
+폼에 입력한 값을 커맨드 객체로 전달받아 회원가입을 처리하는 코드를 추가해보자.
+
+* **/java/controller/RegisterController.java**
+
+  ```java
+  @Controller
+  public class RegisterController {
+  
+    private MemberRegisterService memberRegisterService;
+  
+    public void setMemberRegisterService(MemberRegisterService memberRegisterService) {
+      this.memberRegisterService = memberRegisterService;
+    }
+  
+    @RequestMapping("/register/step1")
+    public String handleStep1() {
+      return "register/step1";
+    }
+  
+    @PostMapping("/register/step2")
+    public String handleStep2(
+        @RequestParam(value = "agree", defaultValue = "false") Boolean agree) {
+      if (!agree) {
+        return "register/step1";
+      }
+      return "register/step2";
+    }
+  
+    @GetMapping("/register/step2")
+    public String handleStep2Get() {
+      return "redirect:/register/step1";
+    }
+  
+    @PostMapping("/register/step3")
+    public String handleStep3(RegisterRequest regReq) {
+      // MemberRegisterService를 이용해서 회원 가입을 처리한다.
+      try {
+        // 회원 가입 성공시
+        memberRegisterService.regist(regReq);
+        return "register/step3";
+      } catch (DuplicateMemberDaoException ex) {
+        // 실패시
+        return "register/step2";
+      }
+    }
+  
+  }
+  ```
+
+* **/java/config/ControllerConfig.java**
+
+  ```java
+  @Configuration
+  public class ControllerConfig {
+  
+    @Autowired
+    private MemberRegisterService memberRegSvc;
+  
+    @Bean
+    public RegisterController registerController() {
+      // MemberRegisterService 타입을 의존 주입한다.
+      RegisterController controller = new RegisterController();
+      controller.setMemberRegisterService(memberRegSvc);
+      return controller;
+    }
+  
+  }
+  ```
+
+* **/webapp/WEB-INF/view/register/step3.jsp**
+
+  ```jsp
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+  <html>
+    <head>
+      <title>회원가입</title>
+    </head>
+    <body>
+      <p>회원 가입을 완료했습니다.</p>
+      <p><a href="<c:url value='/main'/>">[첫 화면 이동]</a></p>
+    </body>
+  </html>
+  ```
+
+<br>
+
+# 7. 뷰  JSP 코드에서 커맨드 객체 사용하기
+
+HTTP 요청 파라미터를 이용해서 회원 정보를 전달했으므로 JSP의 표현식 등을 이용해서 정보를 표시해도 되지만, **커맨드 객체를 사용해서 정보를 표시할 수도 있다.**
+
+* **/webapp/WEB-INF/view/register/step3.jsp**
+
+  ```jsp
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+  <html>
+    <head>
+      <title>회원가입</title>
+    </head>
+    <body>
+      <p><strong>${registerRequest.name}님</strong> 회원 가입을 완료했습니다.</p>
+      <p><a href="<c:url value='/main'/>">[첫 화면 이동]</a></p>
+    </body>
+  </html>
+  ```
+
+  * 스프링 MVC는 커맨드 객체의 클래스 이름과 동일한 속성 이름을 사용해서 커맨드 객체를 뷰에 전달한다.
+
+<br>
+
+![image](https://user-images.githubusercontent.com/43431081/76489728-a1adf800-646c-11ea-8a78-a13c9dd2635d.png)
+
+<br>
+
+# 8.  @ModelAttribute 애노테이션으로 커맨드 객체 속성 이름 변경
+
+커맨드 객체에 접근할 때 사용할 속성 이름을 변경하고 싶다면 커맨드 객체로 사용할 파라미터에 **@ModelAttribute 애노테이션을 적용하면 된다.**
+
+```java
+@PostMapping("/register/step3")
+public String handleStep3(@ModelAttribute("formData") RegisterRequest regReq) {
+  ...
+}
+```
+
+위 설정을 사용하면 뷰 코드에서 "formData" 라는 이름으로 커맨드 객체에 접근할 수 있다.
+
+<br>
+
+# 9. 커맨드 객체와 스프링 폼 연동
+
+다시 폼을 보여줄 때 커맨드 객체의 값을 폼에 채워주면 다시 입력해야 되는 불편함을 해소할 수 있다.
+
+```jsp
+<input type="text" name="email" id="email" value="${registerRequest.email}">
+...
+<input type="text" name="name" id="name" value="${registerRequest.name}">
+```
+
+<br>
+
+스프링 MVC가 제공하는 커스텀 태그를 사용하면 더 간단하게 커맨드 객체의 값을 출력할 수 있다.
+
+스프링은 \<form:form> 태그와 \<form:input> 태그를 제공하고 있다. 이 두 태그를 사용하면 커맨드 객체의 값을 폼에 출력할 수 있다.
+
+* **/webapp/WEB-INF/view/register/step2.jsp**
+
+  ```jsp
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+  <html>
+  <head>
+      <title>회원 가입</title>
+  </head>
+  <body>
+  <h2>회원 정보 입력</h2>
+  <%--<form action="step3" method="post">--%>
+  <%--@elvariable id="registerRequest" type="spring.RegisterRequest"--%>
+  <form:form action="step3" modelAttribute="registerRequest">
+      <p>
+          <label>이메일:<br>
+  <%--            <input type="text" name="email" id="email" value="${registerRequest.email}">--%>
+              <form:input path="email"/>
+          </label>
+      </p>
+      <p>
+          <label>이름:<br>
+  <%--            <input type="text" name="name" id="name" value="${registerRequest.name}">--%>
+              <form:input path="name"/>
+          </label>
+      </p>
+      <p>
+          <label>비밀번호:<br>
+              <form:input path="password"/>
+          </label>
+      </p>
+      <p>
+          <label>비밀번호 확인:<br>
+              <form:password path="confirmPassword"/>
+          </label>
+      </p>
+      <input type="submit" value="가입 완료">
+  </form:form>
+  </body>
+  </html>
+  ```
+
+  * **\<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>**
+
+    : 스프링이 제공하는 폼 태그를 사용하기 위해 taglib 디렉티브를 설정
+
+  * **\<form:form> 태그 속성**
+
+    * **action** : \<form> 태그의 action 속성과 동일한 값을 사용한다.
+    * **modelAttribute** : 커맨드 객체의 속성 이름을 지정한다. 설정하지 않는 경우  "command"를 기본값으로 사용한다.
+
+  * **\<form:input> 태그**
+
+    * path로 지정한 커맨드 객체의 프로퍼티를 \<input> 태그의  value 속성값으로 사용한다.
+
+  * **\<form:password> 태그**
+
+    * \<form:input> 태그와 유사하다.
+
+<br>
+
+step1에서  step2로 넘어오는 단계에서 이름이 "registerRequest"인 객체를 모델에 넣어야 \<form:form> 태그가 정상 동작한다. 이를 위해 코드를 수정해보자.
+
+* **/java/controller/RegisterController.java**
+
+  ```java
+  @Controller
+  public class RegisterController {
+  
+    ...
+  
+    @PostMapping("/register/step2")
+    public String handleStep2(
+        @RequestParam(value = "agree", defaultValue = "false") Boolean agree,
+        Model model) {
+      if (!agree) {
+        return "register/step1";
+      }
+      model.addAttribute("registerRequest", new RegisterRequest());
+      return "register/step2";
+    }
+  
+    ...
+      
+  }
+  ```
+
+<br>
+
+# 10. 컨트롤러 구현 없는 경로 매핑
+
+```jsp
+<p>
+  <a href="<c:url value='/main'/>">[첫 화면 이동]</a>
+</p>
+```
+
+위의 코드는 회원 가입 완료 후 첫 화면으로 이동할 수 있는 링크를 보여준다. 이 링크를 위한 컨트롤러 클래스는 특별히 처리할 것이 없기 때문에 뷰 이름만 리턴하도록 구현한다.
+
+* **/java/controller/MainController.java**
+
+  ```java
+  @Controller
+  public class MainController {
+    
+    @RequestMapping("/main")
+    public String main() {
+      return "main";
+    }
+    
+  }
+  ```
+
+  * 이 컨트롤러 코드는 요청 경로와 뷰 이름을 연결해주는 것에 불과하다. 
+
+<br>
+
+위의 성가신 일을 해결하는 방법은 **WebMvcConfigurer 인터페이스의 addViewControllers() 메서드를** 사용하는 것이다.
+
+이 메서드를 재정의하면 컨트롤러 구현없이 간단한 코드로 요청 경로와 뷰 이름을 연결할 수 있다.
+
+```java
+@Override
+public void addViewControllers(ViewControllerRegistry registry) {
+  registry.addViewController("/main").setViewName("main")
+}
+```
+
+<br>
+
+* **/resources/spring-controller.xml**
+
+  ```java
+  @Configuration
+  @EnableWebMvc
+  public class MvcConfig implements WebMvcConfigurer {
+  
+    @Override
+    public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+      configurer.enable();
+    }
+  
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+      registry.jsp("/WEB-INF/view/", ".jsp");
+    }
+  
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+      registry.addViewController("/main").setViewName("main");
+    }
+    
+  }
+  ```
+
+* **/webapp/WEB-INF/view/main.jsp**
+
+  ```jsp
+  <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <html>
+    <head>
+      <title>메인</title>
+    </head>
+    <body>
+      <p>환영합니다.</p>
+      <p><a href="<c:url value="/register/step1"/>">[회원 가입하기]</a></p>
+    </body>
+  </html>
+  ```
+
+<br>
+
+# 11. 주요 에러 발생 상황
+
+## 11.1. 요청 매핑 애노테이션과 관련된 주요 익셉션
+
+요청 경로를 처리할 컨트롤러가 존재하지 않거나 WebMvcConfigurer를 이용한 설정이 없다면 404 에러가 발생한다.
+
+* **404 에러 발생 시 확인해야 할 사항들**
+  * 요청 경로가 올바른지
+  * 컨트롤러에 설정한 경로가 올바른지
+  * 컨트롤러 클래스를 빈으로 등록했는지
+  * 컨트롤러 클래스에 @Controller 애노테이션을 적용했는지
+
+컨트롤러가 존재하지 않을 때는 에러 메시지에 **URL이** 나오지만, 뷰 이름에 해당하는 JSP 파일이 존재하지 않을 때는 에러 메시지에  **JSP 파일의 경로가 출력된다.**
+
+지원하지 않는 전송 방식(method)을 사용한 경우  **405** 에러가 발생한다.
+
+<br>
+
+## 11.2. @RequestParam이나 커맨드 객체와 관련된 주요 익셉션
+
+* **예시**
+
+  ```java
+  @PostMappin("/register/step2")
+  public String handleStep2(
+    @RequestParam("agree") Boolean agree,
+    Model model) {
+    ...
+  }
+  ```
+
+  * 위와 같이 @RequestParam 애노테이션을 필수로 설정하고 기본값을 지정하지 않았다.
+  * 이렇게 수정한 뒤 약관 동의 화면에서 '약관 동의'를 선택하지 않고 [다음 단계] 버튼을 클릭하면, 파라미터로 아무 값도 전송되지 않는다.
+  * 즉  agree 파라미터를 전송하지 않기 때문에 **@RequestParam 애노테이션을 처리하는 과정에서 필수인 "agree" 파라미터가 존재하지 않는다는 익셉션이 발생한다.**
+  * **400** 에러가 전송되며 에러 메시지는 필수인 파라미터가 없다는 내용으로 출력된다.
+
+만약 value 속성을 "true" 에서  "true1"로 변경하고 실행해보면 **400** 에러가 발생한다. 에러 메시지를 보면 **"true1" 값을 Boolean 타입으로 변환할 수 없어서** 에러가 발생한 것을 확인할 수 있다.
+
+브라우저에서 표시된 400 에러만 보면 어떤 문제로 이 에러가 발생했는지 찾기가 쉽지 않기 때문에 콘솔에 출력된 로그 메시지를 참고하면 도움이 된다.
+
+### Logback으로 자세한 에러 로그 출력하기
+
+로그 레벨을 낮추면 더 자세한 로그를 확인할 수 있다. 
+
+Logback 관련 의존을 추가한다.
+
+* **build.gradle**
+
+  ```java
+  plugins {
+      id 'java'
+  }
+  
+  group 'org.example'
+  version '1.0-SNAPSHOT'
+  
+  sourceCompatibility = 1.8
+  compileJava.options.encoding("UTF-8")
+  
+  apply plugin: 'java'
+  apply plugin: 'war'
+  
+  repositories {
+      mavenCentral()
+  }
+  
+  dependencies {
+      testCompile group: 'junit', name: 'junit', version: '4.12'
+      implementation 'javax.servlet:javax.servlet-api:4.0.1'
+      implementation 'javax.servlet.jsp:javax.servlet.jsp-api:2.3.3'
+      implementation 'jstl:jstl:1.2'
+      implementation 'org.springframework:spring-webmvc:5.2.4.RELEASE'
+      implementation 'org.springframework:spring-jdbc:5.2.4.RELEASE'
+      implementation 'org.apache.tomcat:tomcat-jdbc:10.0.0-M1'
+      implementation 'org.postgresql:postgresql:42.2.11.jre7'
+      implementation 'org.springframework:springloaded:1.2.8.RELEASE'
+      implementation 'org.slf4j:slf4j-api:2.0.0-alpha1'
+  }
+  ```
+
+그 후 src/main/resources 폴더에 logback.xml 파일을 생성한다.
+
+* **logback.xml**
+
+  ```xml
+  <?xml version="1.0" encoding="UTF-8" ?>
+  <configuration>
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>%d %5p %c{2} - %m%n</pattern>
+      </encoder>
+    </appender>
+    <root level="INFO">
+      <appender-ref ref="stdout"/>
+    </root>
+  
+    <logger name="org.springframework.servlet" level="DEBUG"/>
+  </configuration>
+  ```
+
+  * 위 설정은 org.springframework.web.servlet과 그 하위 패키지의 클래스에서 출력한 로그를 상세한 수준('DEBUG' 레벨)으로 남긴다.
+  * 이 디버깅 라이브러리를 사용하면 400 에러가 발생하는 상황이 되면 콘솔에서 보다 상세한 로그를 볼 수 있다.
+
+<br>
+
+# 12. 커맨드 객체: 중첩 ・ 콜렉션 프로퍼티
+
+세 개의 설문 항목과 응답자의 지역과 나이를 입력받는 설문 조사 정보를 담기 위해 클래스를 작성해보자.
+
+* **/java/survey/Respondent.java**
+
+  ```java
+  public class Respondent {
+    
+    private int age;
+    private String location;
+  
+    public int getAge() {
+      return age;
+    }
+  
+    public void setAge(int age) {
+      this.age = age;
+    }
+  
+    public String getLocation() {
+      return location;
+    }
+  
+    public void setLocation(String location) {
+      this.location = location;
+    }
+    
+  }
+  ```
+
+* **/java/survey/AnsweredData.java**
+
+  ```java
+  public class AnsweredData {
+    
+    private List<String> response;
+    private Respondent res;
+  
+    public List<String> getResponse() {
+      return response;
+    }
+  
+    public void setResponse(List<String> response) {
+      this.response = response;
+    }
+  
+    public Respondent getRes() {
+      return res;
+    }
+  
+    public void setRes(Respondent res) {
+      this.res = res;
+    }
+    
+  }
+  ```
+
+  

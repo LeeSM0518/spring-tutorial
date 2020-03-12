@@ -25,13 +25,5 @@ dependencies {
     implementation 'org.apache.tomcat:tomcat-jdbc:10.0.0-M1'
     implementation 'org.postgresql:postgresql:42.2.11.jre7'
     implementation 'org.springframework:springloaded:1.2.8.RELEASE'
-}
-
-apply plugin: 'idea'
-
-idea {
-    module {
-        inheritOutputDirs = false
-        outputDir = file("$buildDir/classes/main/")
-    }
+    implementation 'org.slf4j:slf4j-api:2.0.0-alpha1'
 }
