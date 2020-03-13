@@ -1037,4 +1037,523 @@ Logback 관련 의존을 추가한다.
   }
   ```
 
+  * 이전에 커맨드 객체로 사용한 클래스와 비교하면 차이가 존재한다.
+    * 리스트 타입의 프로퍼티가 존재한다.
+    * 중첩 프로퍼티를 갖는다.
+
+<br>
+
+스프링 MVC는 커맨드 객체가 리스트 타입의 프로퍼티를 가졌거나 중첩 프로퍼티를 가진 경우에도 요청 파라미터의 값을 알맞게 커맨드 객체에 설정해주는 기능을 제공해준다.
+
+* HTTP 요청 파라미터 이름이 **"프로퍼티이름[인덱스]"** 형식이면 List 타입 프로퍼티의 값 목록으로 처리한다.
+* HTTP 요청 파라미터 이름이 **"프로퍼티이름.프로퍼티이름"** 과 같은 형식이면 중첩 프로퍼티 값을 처리한다.
+
+<br>
+
+컨트롤러 클래스를 작성해보자.
+
+* **/java/survey/SurveyController.java**
+
+  ```java
+  @Controller
+  @RequestMapping("/survey")
+  public class SurveyController {
+    
+    @GetMapping
+    public String form() {
+      return "survey/surveyForm";
+    }
+    
+    @PostMapping
+    public String submit(@ModelAttribute("ansData") AnsweredData data) {
+      return "survey/submitted";
+    }
+    
+  }
+  ```
+
+* **/java/config/ControllerConfig.java**
+
+  ```java
+  @Configuration
+  public class ControllerConfig {
   
+    @Autowired
+    private MemberRegisterService memberRegSvc;
+  
+    @Bean
+    public RegisterController registerController() {
+      RegisterController controller = new RegisterController();
+      controller.setMemberRegisterService(memberRegSvc);
+      return controller;
+    }
+    
+    @Bean
+    public SurveyController surveyController() {
+      return new SurveyController();
+    }
+  
+  }
+  ```
+
+* **/webapp/WEB-INF/view/survey/surveyForm.jsp**
+
+  ```jsp
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <html>
+    <head>
+      <title>설문조사</title>
+    </head>
+    <body>
+      <h2>설문조사</h2>
+      <form method="post">
+        <p>1. 당신의 역할은?<br/>
+          <label><input type="radio" name="responses[0]" value="서버">서버개발자</label>
+          <label><input type="radio" name="responses[0]" value="프론트">프론트개발자</label>
+          <label><input type="radio" name="responses[0]" value="풀스택">풀스택개발자</label>
+        </p>
+        <p>
+          2. 가장 많이 사용하는 개발도구는?<br/>
+          <label><input type="radio" name="responses[1]" value="Eclipse">Eclipse</label>
+          <label><input type="radio" name="responses[1]" value="Intellij">Intellij</label>
+          <label><input type="radio" name="responses[1]" value="Sublime">Sublime</label>
+        </p>
+        <p>
+          3. 하고싶은 말<br/>
+          <label>
+            <input type="text" name="responses[2]">
+          </label>
+        </p>
+        <p>
+          <label>응답자 위치:<br/>
+            <input type="text" name="res.location">
+          </label>
+        </p>
+        <p>
+          <label>응답자 나이:<br/>
+            <input type="text" name="res.age">
+          </label>
+        </p>
+        <input type="submit" value="전송">
+      </form>
+    </body>
+  </html>
+  ```
+
+  * **responses[0], responses[1], responses[2]** : responses 프로퍼티의 값들
+  * **res.location** : res 프로퍼티의 location 프로퍼티
+  * **res.age** : res 프로퍼티의 age 프로퍼티
+
+* **/webapp/WEB-INF/view/survey/submitted.jsp**
+
+  ```jsp
+  <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <html>
+    <head>
+      <title>응답 내용</title>
+    </head>
+    <body>
+      <p>응답 내용:</p>
+      <ul>
+        <c:forEach var="response"
+                   items="${ansData.responses}" varStatus="status">
+          <li>${status.index + 1}번 문항: ${response}</li>
+        </c:forEach>
+      </ul>
+      <p>응답자 위치: ${ansData.res.location}</p>
+      <p>응답자 나이: ${ansData.res.age}</p>
+    </body>
+  </html>
+  ```
+
+<br>
+
+# 13. Model을 통해 컨트롤러에서 뷰에 데이터 전달하기
+
+컨트롤러는 뷰가 응답 화면을 구성하는데 필요한 데이터를 생성해서 전달해야 한다. 이때 사용하는 것이 **Model** 이다.
+
+* **Model 사용 예시**
+
+  ```java
+  @Controller
+  public class HelloController {
+    @RequestMapping("/hello")
+    public String hello(Model, model,
+                       @RequestParam(value = "name", required = false) String name) {
+      model.addAttribute("greeting", "안녕하세요, " + name)
+        return "hello";
+    }
+  }
+  ```
+
+  * 뷰에 데이터를 전달해야하는 컨트롤러는 두 가지만 하면 된다.
+    1. 요청 매핑 애노테이션이 적용된 메서드의 파라미터로 Model을 추가
+    2. Model 파라미터의 addAttribute() 메서드로 뷰에서 사용할 데이터 전달
+
+<br>
+
+설문 항목을 컨트롤러에서 생성해서 뷰에 전달하는 방식으로 변경해보자.
+
+* **/java/survey/Question.java**
+
+  ```java
+  public class Question {
+    
+    private String title;
+    private List<String> options;
+  
+    public Question(String title, List<String> options) {
+      this.title = title;
+      this.options = options;
+    }
+  
+    public Question(String title) {
+      this.title = title;
+    }
+  
+    public String getTitle() {
+      return title;
+    }
+  
+    public List<String> getOptions() {
+      return options;
+    }
+    
+    public boolean isChoice() {
+      return options != null && !options.isEmpty();
+    }
+    
+  }
+  ```
+
+* **/java/survey/SurveyController.java**
+
+  ```java
+  @Controller
+  @RequestMapping("/survey")
+  public class SurveyController {
+  
+    @GetMapping
+    public String form(Model model) {
+      List<Question> questions = createQuestions();
+      model.addAttribute("questions", questions);
+      return "survey/surveyForm";
+    }
+  
+    private List<Question> createQuestions() {
+      Question q1 = new Question("당신의 역할은 무엇입니까?",
+                                 Arrays.asList("서버", "프론트", "풀스택"));
+      Question q2 = new Question("많이 사용하는 개발도구는 무엇입니까?",
+                                 Arrays.asList("이클립스", "인텔리J", "서브라임"));
+      Question q3 = new Question("하고 싶은 말 적어주세요.");
+      return Arrays.asList(q1, q2, q3);
+    }
+  
+    @PostMapping
+    public String submit(@ModelAttribute("ansData") AnsweredData data) {
+      return "survey/submitted";
+    }
+  
+  }
+  ```
+
+  * form() 메서드에 Model 타입의 파라미터를 추가
+  * Question 리스트를 "questions"라는 이름으로 모델에 추가했다.
+
+* **/webapp/WEB-INF/view/survey/surveyForm.jsp**
+
+  ```jsp
+  <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <html>
+    <head>
+      <title>설문조사</title>
+    </head>
+    <body>
+      <h2>설문조사</h2>
+      <form method="post">
+        <c:forEach var="q" items="${questions}" varStatus="status">
+          <p>${status.index + 1}. ${q.title}<br/>
+            <c:if test="${q.choice}">
+              <c:forEach var="option" items="${q.options}">
+                <label><input type="radio"
+                              name="responses[${status.index}]" value="${option}">
+                  ${option}</label>
+              </c:forEach>
+            </c:if>
+            <c:if test="${! q.choice}">
+              <input type="text" name="responses[${status.index}]">
+            </c:if>
+          </p>
+        </c:forEach>
+        <p>
+          <label>응답자 위치:<br/>
+            <input type="text" name="res.location">
+          </label>
+        </p>
+        <p>
+          <label>응답자 나이:<br/>
+            <input type="text" name="res.age">
+          </label>
+        </p>
+        <input type="submit" value="전송">
+      </form>
+    </body>
+  </html>
+  ```
+
+<br>
+
+## 13.1. ModelAndView를 통한 뷰 선택과 모델 전달
+
+지금까지 구현한 컨트롤러는 두 가지 특징이 있다.
+
+* <u>Model을 이용해서 뷰에 전달할 데이터 설정</u>
+* <u>결과를 보여줄 뷰 이름을 리턴</u>
+
+**ModelAndView를** 사용하면 이 두 가지를 한 번에 처리할 수 있다. ModelAndView는 **모델과 뷰 이름을 함께 제공한다.**
+
+```java
+@Controller
+@RequestMapping("/survey")
+public class SurveyController {
+  
+  @GetMappin
+  public ModelAndView form() {
+    List<Question> questions = createQuestions();
+    ModelAndView mav = new ModelAndView();
+    mav.addObject("questions", questions);
+    mav.setViewName("survey/surveyForm");
+    return mav;
+  }
+  
+}
+```
+
+* 뷰에 전달할 **모델 데이터는 addObject() 메서드로 추가**
+* **뷰 이름은 setViewName() 메서드를** 이용해서 지정한다.
+
+<br>
+
+## 13.2. GET 방식과 POST 방식에 동일 이름 커맨드 객체 사용하기
+
+\<form:form> 태그를 사용하려면 커맨드 객체가 반드시 존재해야 한다.
+
+커맨드 객체를 파라미터로 추가하면 간단하다.
+
+```java
+@PostMapping("/register/step2")
+public String handleStep2(
+  @RequestParam(value = "agree", defaultValue = "false") Boolean agree,
+  RegisterRequest registerRequest) {
+  if (!agree) {
+    return "register/step1";
+  }
+  return "register/step2";
+}
+```
+
+<br>
+
+이름을 명시적으로 지정하려면 **@ModelAttribute 애노테이션을 사용한다.** 
+
+```java
+@Controller
+@RequestMapping("/login")
+public class LoginController {
+  
+  @GetMapping
+  public String form(@ModelAttribute("login") LoginCommand loginCommand) {
+    return "login/loginForm";
+  }
+  
+  @PostMapping
+  public String form(@ModelAttribute("login") LoginCommand loginCommand) {
+    ...
+  }
+  
+}
+```
+
+<br>
+
+# 14. 주요 폼 태그 설명
+
+스프링 MVC는 \<form:form>, \<form:input> 등 HTML 폼과 커맨드 객체를 연동하기 위한 JSP 태그 라이브러리를 제공한다. 이 두 태그 외에도 \<select>를 위한 태그와 체크 박스나 라디오 버튼을 위한 커스텀 태그도 제공한다.
+
+<br>
+
+## 14.1. \<form> 태그를 위한 커스텀 태그 : \<form:form>
+
+\<form:form> 커스텀 태그는 **\<form> 태그를 생성할 때 사용된다.**
+
+* **사용 방법**
+
+  ```jsp
+  <%@ taglib prefix="form" url="http://www.springframework.org/tags/form" %>
+  ...
+  <form:form>
+    ...
+    <input type="submit" value="가입 완료">
+  </form:form>
+  ```
+
+  * method 속성과 action 속성을 지정하지 않으면 **method 속성값은 "post"로** 설정되고 **action 속성값은 현재 요청 URL로** 설정된다.
+
+<br>
+
+커맨드 객체 이름이 기본값인 "command"가 아니면 **modelAttribute 속성값으로** 커맨드 객체의 이름을 설정해야 한다.
+
+```jsp
+<form:form modelAttribute="loginCommand">
+  ...
+</form:form>
+```
+
+<br>
+
+* **\<form:form> 커스텀 태그의 속성들**
+  * **action** : 폼 데이터를 전송할 URL을 입력
+  * **enctype** : 전송될 데이터의 인코딩 타입
+  * **method** : 전송 방식
+
+<br>
+
+커맨드 객체의 값을 사용하면 이전에 입력한 값을 출력할 수 있다.
+
+```jsp
+<form:form modelAttribute="loginCommand">
+  ...
+  <input type="text" name="id" value="${loginCommand.id}"/>
+  ...
+</form:form>
+```
+
+<br>
+
+## 14.2. \<input> 관련 커스텀 태그 : \<form:input>, \<form:password>, \<form:hidden>
+
+* **\<input> 태그와 관련된 기본 커스텀 태그**
+  * **\<form:input>** : text 타입의 \<input> 태그
+  * **\<form:password>** : password 타입의 \<input> 태그
+  * **\<form:hidden>** : hidden 타입의 \<input> 태그
+
+<br>
+
+\<form:input> 커스텀 태그는 **path 속성을** 사용해서 연결할 커맨드 객체의 프로퍼티를 지정한다.
+
+```jsp
+<form:form modelAttribute="registerReqeust" action="step3">
+  <p>
+    <label>이메일:<br/>
+      <form:input path="email"/>
+    </label>
+  </p>
+</form:form>
+```
+
+<br>
+
+## 14.3. \<select> 관련 커스텀 태그 : \<form:select>, \<form:options>, \<form:option>
+
+* **\<select> 태그와 관련된 커스텀 태그**
+  * **\<form:select>** : \<select> 태그를 생성한다. \<option> 태그를 생성할 때 필요한 콜렉션을 전달받을 수도 있다.
+  * **\<form:options>** : 지정한 콜렉션 객체를 이용하여 \<option> 태그를 생성한다.
+  * **\<form:option>** : \<option> 태그 한 개를 생성한다.
+
+<br>
+
+\<select> 태그는 선택 옵션을 제공할 때 주로 사용한다.
+
+\<select> 태그에서 사용할 옵션 목록을 Model을 통해 전달한다.
+
+```java
+@GetMapping("/login")
+public String form(Model model) {
+  List<String> loginTypes = new ArrayList<>();
+  loginTypes.add("일반회원");
+  loginTypes.add("기업회원");
+  loginTypes.add("헤드헌터회원");
+  model.addAttribute("loginTypes", loginTypes);
+  return "login/form";
+}
+```
+
+\<form:select> 커스텀 태그를 사용하면 뷰에 전달할 모델 객체를 갖고 간단하게 \<select>와 \<option> 태그를 생성할 수 있다.
+
+```jsp
+<form:form modelAttribute="login">
+  <p>
+    <label for="loginType">로그인 타입</label>
+    <form:select path="loginType" items="${loginTypes}"/>
+  </p>
+</form:form>
+```
+
+<br>
+
+\<form:options> 커스텀 태그는 주로 콜렉션에 없는 값을 \<option> 태그로 추가할 때 사용한다.
+
+```jsp
+<form:select path="loginType">
+  <option value="">--- 선택하세요 ---</option>
+  <form:options items="${loginTypes}"/>
+</form:select>
+```
+
+<br>
+
+\<form:option> 커스텀 태그는 \<option> 태그를 직접 지정할 때 사용된다.
+
+```jsp
+<form:select path="loginType">
+  <form:option value="일반회원"/>
+  <form:option value="기업회원">기업</form:option>
+  <form:option value="헤드헌터회원" label="헤드헌터"/>
+</form:select>
+```
+
+<br>
+
+\<option> 태그를 생성하는데 사용할 콜렉션 객체가 일반 객체일 때는 **itemLabel, itemVaule 속성들을 사용한다.**
+
+* **Code.java**
+
+  ```java
+  public class Code {
+    private String code;
+    private String label;
+    
+    public Code(String code, String label) {
+      this.code = code;
+      this.label = label;
+    }
+    
+    public String getCode() {
+      return code;
+    }
+    
+    public String getLabel() {
+      return label;
+    } 
+  }
+  ```
+
+  * 콜렉션에 저장된 객체의 특정 프로퍼티를 사용해야 하는 경우 **itemValue 속성과 itemLabel 속성을 사용한다.**
+
+* **jsp 파일**
+
+  ```jsp
+  <form:select path="jobCode">
+    <option value="">--- 선택하세요 ---</option>
+    <form:options items="${jobCodes}" itemLabel="label" itemValue="code"/>
+  </form:select>
+  ```
+
+<br>
+
+## 14.4. 체크박스 관련 커스텀 태그 : \<form:checkboxes>, \<form:checkbox>
+
+한 개 이상의 값을 커맨드 객체의 특정 프로퍼티에 저장하고 싶다면 배열이나 List와 같은 타입을 사용해서 값을 저장한다.
+
