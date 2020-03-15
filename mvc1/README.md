@@ -1557,3 +1557,133 @@ public String form(Model model) {
 
 한 개 이상의 값을 커맨드 객체의 특정 프로퍼티에 저장하고 싶다면 배열이나 List와 같은 타입을 사용해서 값을 저장한다.
 
+* **예시) MemberRegistRequest.java**
+
+  ```java
+  public class MemberRegistRequest {
+    private String[] favoriteOs;
+    
+    public String[] getFavoriteOs() {
+      return favoriteOs;
+    }
+    
+    public void setFavoriteOs(String[] favoriteOs) {
+      this.favoriteOs = favoriteOs;
+    }
+    
+    ...
+  }
+  ```
+
+<br>
+
+checkbox 타입의 \<input> 태그를 이용하면 한 개 이상의 값을 선택할 수 있다.
+
+```html
+<input type="checkbox" name="favoriteOs" value="윈도우8">윈도우8</input>
+<input type="checkbox" name="favoriteOs" value="윈도우10">윈도우10</input>
+```
+
+<br>
+
+스프링은 checkbox 타입의 \<input> 태그와 관련하여 커스텀 태그를 제공한다.
+
+| 커스텀 태그        | 설명                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| \<form:checkboxes> | 커맨드 객체의 특정 프로퍼티와 관련된 checkbox 타입의 \<input> 태그 목록을 생성한다. |
+| \<form:checkbox>   | 커맨드 객체의 특정 프로퍼티와 관련된 한 개의 checkbox 타입 \<input> 태그를 생성한다. |
+
+<br>
+
+* **\<form:checkboxes> 예시**
+
+  ```jsp
+  <p>
+    <label>선호 OS</label>
+    <form:checkboxes items="${favoriteOsNames}" path="favoriteOs"/>
+  </p>
+  ```
+
+  * **items** : 값으로 사용할 컬렉션을 지정
+  * **path** : 커맨드 객체의 프로퍼티 지정
+
+  ```jsp
+  <p>
+    <label>선호 OS</label>
+    <form:checkboxes items="${favoriteOsCodes}" path="favoriteOs"
+                     itemValue="code" itemLabel="label"/>
+  </p>
+  ```
+
+  * **itemValue, itemLabel** : 값과 텍스트로 사용할 객체의 프로퍼티를 지정
+
+<br>
+
+* **\<form:checkbox> 예시**
+
+  ```jsp
+  <form:checkbox path="favoriteOs" value="WIN8" label"윈도우8"/>
+  <form:checkbox path="favoriteOs" value="WIN10" label="윈도우10"/>
+  ```
+
+<br>
+
+## 14.5. 라디오버튼 관련 커스텀 태그: \<form:radiobuttons>, \<form:radiobutton>
+
+스프링은 radio 타입의 \<input> 태그 같은 커스텀 태그를 제공한다.
+
+| 커스텀 태그          | 설명                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| \<form:radiobuttons> | 커맨드 객체의 특정 프로퍼티와 관련된 radio 타입의 \<input> 태그 목록을 생성한다. |
+| \<form:radiobutton>  | 커맨드 객체의 특정 프로퍼티와 관련된 한 개 radio 타입 \<input> 태그를 생성한다. |
+
+<br>
+
+* **\<form:radiobuttons> 예시**
+
+  : items 속성에 값으로 사용할 컬렉션을 전달받고 path 속성에 커맨드 객체의 프로퍼티를 지정한다.
+
+  ```jsp
+  <p>
+    <label>주로 사용하는 개발툴</label>
+    <form:radiobuttons items="${tools}" path="tool"/>
+  </p>
+  ```
+
+<br>
+
+\<form:radiobutton> 커스텀 태그는 1개의 radio 타입 \<input> 태그를 생성할 때 사용되며 value 속성과 label 속성을 이용하여 값과 텍스트를 설정한다.
+
+<br>
+
+## 14.6. \<textarea> 태그를 위한 커스텀 태그: \<form:textarea>
+
+* **사용 예**
+
+  ```jsp
+  <p>
+    <label for"etc">기타</label>
+    <form:textarea path="etc" cols="20" rows="3"/>
+  </p>
+  ```
+
+<br>
+
+## 14.7. CSS 및 HTML 태그와 관련된 공통 속성
+
+\<form:input>, \<form:select> 등 입력 폼과 관련해서 제공하는 스프링 커스텀 태그는 HTML의 CSS 및 이벤트 관련 속성을 제공한다.
+
+* **CSS 관련 속성**
+  * **cssClass** : HTML의 class 속성값
+  * **cssErrorClass** : 폼 검증 에러가 발생했을 때 사용할 HTML의 class 속성값
+  * **cssStyle** : HTML의 style 속성값
+* **HTML 태그가 사용하는 속성**
+  * id, title, dir
+  * disabled, tabindex
+  * onfocus, onblur, onchange
+  * onclick, ondbclick
+  * onkeydown, onkeypress, onkeyup
+  * onmousedown, onmousemove, onmouseup
+  * onmouseout, onmouseover
+
+각 커스텀 태그는 htmlEscape 속성을 사용해서 커맨드 객체의 값에 포함된 **HTML 특수 문자를 엔티티 레퍼런스로 변환할지를 결정할 수 있다.**
