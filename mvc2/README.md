@@ -289,5 +289,156 @@ register.done=<string>{0}님 ({1})</strong>, 회원 가입을 완료했습니다
 
 <br>
 
-# 3. 
+# 3. 커맨드 객체의 값 검증과 에러 메시지 처리
 
+이전까지의 코드는 올바르지 않은 이메일 주소를 입력해도 가입 처리가 되고 이름을 입력하지 않아도 가입할 수 있다. 즉 입력한 값에 대한 검증 처리를 하지 않는다.
+
+그리고 가입이 실패한 이유를 보여주지 않기 때문에 사용자는 혼란을 겪게 된다.
+
+폼 값 검증과 에러 메시지 처리는 어플리케이션을 개발할 때 놓쳐서는 안 된다.
+
+<br>
+
+스프링은 이 두 가지 문제를 처리하기 위해 방법들을 제공한다.
+
+* **커맨드 객체를 검증하고 결과를 에러 코드로 저장**
+* **JSP에서 에러 코드로부터 메시지 출력**
+
+<br>
+
+## 3.1. 커맨드 객체 검증과 에러 코드 지정하기
+
+스프링 MVC에서 커맨드 객체의 값이 올바른지 검사하기 위한 인터페이스
+
+* **org.springframework.validation.Validator**
+* **org.springframework.validation.Errors**
+
+<br>
+
+**Validator 인터페이스**
+
+```java
+package org.springframework.validation;
+
+public interface Validator {
+  boolean supports(Class<?> clazz);
+  void validate(Object target, Errors errors);
+}
+```
+
+* **supports()** : Validator가 검증할 수 있는 타입인지 검사한다.
+* **validate()** : 첫 번째 파라미터로 전달받은 객체를 검증하고 오류 결과를 Errors에 담는 기능을 정의한다.
+
+<br>
+
+Validator 인터페이스를 구현해보자.
+
+* **java/controller/RegisterRequestValidator.java**
+
+  ```java
+  public class RegisterRequestValidator implements Validator {
+  
+    private static final String emailRegExp =
+      "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@" +
+      "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
+    private Pattern pattern;
+  
+    public RegisterRequestValidator() {
+      pattern = Pattern.compile(emailRegExp);
+    }
+  
+    @Override
+    public boolean supports(Class<?> clazz) {
+      // clazz 객체가 RegisterRequest 클래스로 타입 변환이 가능한지 확인한다.
+      // 스프링 MVC가 자동으로 검증 기능을 수행하도록 설정하려면 올바르게 구현해야 한다.
+      return RegisterRequest.class.isAssignableFrom(clazz);
+    }
+  
+    @Override
+    // target : 검사 대상 객체
+    // errors : 검사 결과 에러 코드를 설정하기 위한 객체
+    public void validate(Object target, Errors errors) {
+      // 전달받은 target을 실제 타입으로 변환
+      RegisterRequest regReq = (RegisterRequest) target;
+      // 검사 대상 객체의 특정 프로퍼티나 상태가 올바른지 검사
+      if (regReq.getEmail() == null || regReq.getEmail().trim().isEmpty()) {
+        // 올바르지 않다면 Errors의 rejectValue() 메서드를 이용해서 에러 코드 저장
+        errors.rejectValue("email", "required");
+      } else {
+        // 정규 표현식을 이용해서 이메일이 올바른지 확인
+        Matcher matcher = pattern.matcher(regReq.getEmail());
+        if (!matcher.matches()) {
+          // 정규 표현식이 일치하지 rejectValue 를 통해 에러 코드 추가
+          errors.rejectValue("email", "bad");
+        }
+      }
+      // ValidationUtils : 객체의 값 검증 코드를 간결하게 작성할 수 있도록 도와준다.
+  
+      // 검사 대상 객체의 "name" 프로퍼티가 null 이거나 공백문자로만 되어 있는 경우
+      // "name" 프로퍼티의 에러 코드로 "required"를 추가한다.
+      // Errors 객체는 커맨드 객체의 특정 프로퍼티 값을 구할 수 있는
+      //  getFieldValue() 메서드를 제공한다.
+      ValidationUtils.rejectIfEmptyOrWhitespace(errors, "name", "required");
+      ValidationUtils.rejectIfEmpty(errors, "password", "required");
+      ValidationUtils.rejectIfEmpty(errors, "confirmPassword", "required");
+      if (!regReq.getPassword().isEmpty()) {
+        if (!regReq.isPasswordEqualToConfirmPassword()) {
+          errors.rejectValue("confirmPassword", "nomatch");
+        }
+      }
+    }
+  
+  }
+  ```
+
+* **java/controller/RegisterController.java**
+
+  ```java
+  @Controller
+  public class RegisterController {
+  
+    ... 생략
+  
+    @PostMapping("/register/step3")
+    // 스프링 MVC가 handleStep3() 메서드를 호출할 때
+    //  커맨드 객체와 연결된 Errors 객체를 생성해서 파라미터로 전달한다.
+    public String handleStep3(RegisterRequest regReq, Errors errors) {
+      // 커맨드 객체의 값이 올바른지 검사하고 그 결과를 Errors 객체에 담는다.
+      new RegisterRequestValidator().validate(regReq, errors);
+      // 에러가 존재하는지 검사
+      if (errors.hasErrors())
+        return "register/step2";
+      try {
+        memberRegisterService.regist(regReq);
+        return "register/step3";
+      } catch (DuplicateMemberDaoException ex) {
+        // 동일한 이메일을 가진 회원 데이터가 이미 존재시 발생
+        // 이메일 중복 에러를 추가하기 위해 "email" 프로퍼티의
+        //  에러 코드로 "duplicate" 추가
+        errors.rejectValue("email", "duplicate");
+        return "register/step2";
+      }
+    }
+  
+  }
+  ```
+
+  * 커맨드 객체의 특정 프로퍼티가 아닌 커맨드 객체 자체가 잘못된 경우에는 **reject() 메서드를 사용한다.**
+
+    ```java
+    try {
+      ... 인증 처리 코드
+    } catch(WrongIdPasswordException ex) {
+      // 특정 프로퍼티가 아닌 커맨드 객체 자체에 에러 코드 추가
+      errors.reject("notMatchingIdPassword");
+      return "login/loginForm";
+    }
+    ```
+
+    * reject() 메서드는 개별 프로퍼티가 아닌 객체 자체에 에러 코드를 추가하므로 **이 에러를 글로벌 에러라고** 부른다.
+
+  * 요청 매핑 애노테이션을 붙인 메서드에 Errors 타입의 파라미터를 추가할 때 주의할 점은 **Errors 타입 파라미터는 반드시 커맨드 객체를 위한 파라미터 다음에 위치해야 한다.**
+
+  * Errors 타입 파라미터가 커맨드 객체 앞에 위치하면 실행 시점에 에러 발생
+
+  > Errors 대신에 BindingResult 인터페이스를 파라미터 타입으로 사용해도 된다.
