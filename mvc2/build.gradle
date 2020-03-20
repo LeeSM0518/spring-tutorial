@@ -26,4 +26,5 @@ dependencies {
     implementation 'org.postgresql:postgresql:42.2.11.jre7'
     implementation 'org.springframework:springloaded:1.2.8.RELEASE'
     implementation 'org.slf4j:slf4j-api:2.0.0-alpha1'
+    implementation 'javax.validation:validation-api:2.0.1.Final'
 }

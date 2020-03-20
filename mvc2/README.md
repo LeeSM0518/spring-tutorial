@@ -391,6 +391,31 @@ Validator 인터페이스를 구현해보자.
   }
   ```
 
+  * **정규표현식**
+
+    | 표현식 | 설명                                                         |
+    | ------ | ------------------------------------------------------------ |
+    | ^      | 문자열의 시작                                                |
+    | $      | 문자열의 종료                                                |
+    | .      | 임의의 한 문자                                               |
+    | *      | 앞 문자가 없을 수도 무한정 많을 수도 있음                    |
+    | +      | 앞 문자가 하나 이상                                          |
+    | ?      | 앞 문자가 없거나 하나있음                                    |
+    | [ ]    | 문자의 집합이나 범위를 나타내는 문자. <br />- 기호로 범위를 나타낸다. ^ 가 존재하면 not을 나타낸다. |
+    | { }    | 횟수 또는 범위를 나타낸다.                                   |
+    | ( )    | 소괄호 안의 문자를 하나의 문자로 인식                        |
+    | \|     | 패턴 안에서 or 연산을 수행할 때 사용                         |
+    | \s     | 공백 문자                                                    |
+    | \S     | 공백 문자가 아닌 나머지 문자                                 |
+    | \w     | 알파벳이나 숫자                                              |
+    | \W     | 알파벳이나 숫자를 제외한 문자                                |
+    | \d     | 숫자 [0-9]와 동일                                            |
+    | \D     | 숫자를 제외한 모든 문자                                      |
+    | \      | 정규표현식 역슬래시는 확장 문자<br />역슬래시 다음에 일반 문자가 오면 특수문자로 취급하고 역슬래시 다음에<br />특수문자가 오면 그 문자자체를 의미 |
+    | (?!)   | 앞 부분에 (?!) 라는 옵션을 넣어주면 대소문자를 구분하지 않는다. |
+
+    <br>
+
 * **java/controller/RegisterController.java**
 
   ```java
@@ -442,3 +467,268 @@ Validator 인터페이스를 구현해보자.
   * Errors 타입 파라미터가 커맨드 객체 앞에 위치하면 실행 시점에 에러 발생
 
   > Errors 대신에 BindingResult 인터페이스를 파라미터 타입으로 사용해도 된다.
+
+  <br>
+
+## 3.2. Errors와 ValidationUtils 클래스의 주요 메서드
+
+* **Errors 인터페이스가 제공하는 에러 코드 추가 메서드**
+  * reject(String errorCode)
+  * reject(String errorCode, String defaultMessage)
+    * 에러 코드에 해당하는 메시지가 존재하지 않을 때 익셉션을 발생시키는 대신 defaultMessage를 출력한다.
+  * reject(String errorCode, Object[ ] errorArgs, String defaultMessage)
+    * 에러 코드에 해당하는 메시지가 {0}이나 {1}과 같이 인덱스 기반 변수를 포함할 때, errorArgs 파라미터를 이용해서 변수에 삽입될 값을 전달한다.
+  * rejectValue(String field, String errorCode)
+  * rejectValue(String field, String errorCode, String defaultMessage)
+  * rejectValue(String field, String errorCode, Object[ ] errorArgs, String defaultMessage)
+
+<br>
+
+* **ValidationUtils 클래스가 제공하는 메서드**
+  * rejectIfEmpty(Errors errors, String field, String errorCode)
+    * field에 해당하는 프로퍼티 값이 null이거나 빈 문자열("")인 경우 에러 코드로 errorCode를 추가한다.
+  * rejectIfEmpty(Errors errors, String field, String errorCode, Object[ ] errorArgs)
+  * rejectIfEmptyOrWhitespace(Errors errors, String field, String errorCode)
+    * null 이거나 빈 문자열인 경우 그리고 공백 문자(스페이스, 탭 등)로만 값이 구성된 경우 에러 코드 추가
+  * rejectIfEmptyOrWhitespace(Errors errors, String field, String errorCode, Object[ ] errorArgs)
+
+<br>
+
+## 3.3. 커맨드 객체의 에러 메시지 출력하기
+
+Errors에 에러 코드를 추가하면 JSP는 스프링이 제공하는 **\<form:errors>** 태그를 사용해서 에러에 해당하는 메시지를 출력할 수 있다.
+
+* **webapp/WEB-INF/view/step2.jsp**
+
+  ```jsp
+  <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+  <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+  <%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
+  <html>
+    <head>
+      <title><spring:message code="member.register"/></title>
+    </head>
+    <body>
+      <h2><spring:message code="member.info"/></h2>
+      <form:form action="step3" modelAttribute="registerRequest">
+        <p>
+          <label><spring:message code="email"/>:<br>
+            <form:input path="email"/>
+            <form:errors path="email"/>
+          </label>
+        </p>
+        <p>
+          <label><spring:message code="name"/>:<br>
+            <form:input path="name"/>
+            <form:errors path="name"/>
+          </label>
+        </p>
+        <p>
+          <label><spring:message code="password"/>:<br>
+            <form:input path="password"/>
+            <form:errors path="password"/>
+          </label>
+        </p>
+        <p>
+          <label><spring:message code="password.confirm"/>:<br>
+            <form:password path="confirmPassword"/>
+            <form:errors path="confirmPassword"/>
+          </label>
+        </p>
+        <input type="submit" value="<spring:message code="register.btn"/>">
+      </form:form>
+    </body>
+  </html>
+  ```
+
+  * \<form:errors> 태그의 path 속성은 에러 메시지를 출력할 프로퍼티 이름을 지정한다.
+
+<br>
+
+* **에러 코드에 해당하는 메시지 코드를 찾을 때의 규칙**
+  * 에러코드 + "." + 커맨드객체이름 + "." + 필드명
+  * 에러코드 + "." + 필드명
+  * 에러코드 + "." + 필드타입
+  * 에러코드
+
+<br>
+
+* **프로퍼티 타입이 List나 목록인 경우 메시지 코드 생성 방식**
+  * 에러코드 + "." + 커맨드객체이름 + "." + 필드명[인덱스].중첩필드명
+  * 에러코드 + "." + 커맨드객체이름 + "." + 필드명.중첩필드명
+  * 에러코드 + "." + 필드명[인덱스].중첩필드명
+  * 에러코드 + "." + 중첩필드명
+  * 에러코드 + "." + 필드타입
+  * 에러코드
+
+<br>
+
+예를 들어 errors.rejectValue("email", "required") 코드로 "email" 프로퍼티에 "required" 에러 코드를 추가했고 커맨드 객체의 이름이 "registerRequest" 라면 다음 순서대로 메시지 코드를 검색한다.
+
+1. required.registerRequest.email
+2. required.email
+3. required.String
+4. required
+
+위와 같은 순서로 검색하고 이 중 우선 순위가 높은 메시지 코드를 사용해서 메시지를 출력한다.
+
+<br>
+
+특정 프로퍼티가 아닌 커맨드 객체에 추가한 글로벌 에러 코드는 다음과 같은 순서대로 메시지 코드를 검색한다.
+
+1. 에러코드 + "." + 커맨드객체이름
+2. 에러코드
+
+<br>
+
+에러 코드에 해당하는 메시지를 메시지 프로퍼티 파일에 추가해주어야 한다.
+
+* **resources/message/label.properties**
+
+  ```properties
+  member.register=회원가입
+  
+  term=약관
+  term.agree=약관동의
+  next.btn=다음단계
+  
+  member.info=회원정보
+  email=이메일
+  name=이름
+  password=비밀번호
+  password.confirm=비밀번호 확인
+  register.btn=가입 완료
+  
+  #register.done=<strong>{0}님</strong>, 회원 가입을 완료했습니다.
+  register.done=<string>{0}님 ({1})</strong>, 회원 가입을 완료했습니다.
+  
+  go.main=메인으로 이동
+  
+  required=필수항목입니다.
+  bad.email=이메일이 올바르지 않습니다.
+  duplicate.email=중복된 이메일입니다.
+  nomatch.confirmPassword=비밀번호와 확인이 일치하지 않습니다.
+  ```
+
+<br>
+
+## 3.4. \<form:errors> 태그의 주요 속성
+
+\<form:errors> 커스텀 태그는 프로퍼티에 추가한 에러 코드 개수만큼 에러 메시지를 출력한다.
+
+* **에러 메시지 구분 속성**
+
+  * **element** : 각 에러 메시지를 출력할 때 사용할 HTML 태그. 기본 값은 span 이다.
+  * **delimiter** : 각 에러 메시지를 구분할 때 사용할  HTML 태그. 기본 값은 \<br/> 이다.
+
+  ```jsp
+  <form:errors path="userId" element="div" delimeter=""/>
+  ```
+
+  * path 속성을 지정하지 않으면 글로벌 에러에 대한 메시지를 출력한다.
+
+<br>
+
+# 4. 글로벌 범위 Validator와 컨트롤러 범위 Validator
+
+스프링 MVC는 모든 컨트롤러에 적용할 수 있는 글로벌 Validator와 단일 컨트롤러에 적용할 수 있는 Validator를 설정하는 방법을 제공한다.
+
+이를 사용하면 **@Valid 애노테이션을** 사용해서 커맨드 객체에 검증 기능을 적용할 수 있다.
+
+<br>
+
+## 4.1. 글로벌 범위 Validator 설정과 @Valid 애노테이션
+
+글로벌 범위 Validator는 모든 컨트롤러에 적용할 수 있는 Validator이다.
+
+* **글로벌 범위 Validator 적용 방법**
+  * 설정 클래스에서 WebMvcConfigurer의 getValidator() 메서드가 Validator 구현 객체를 리턴하도록 구현
+  * 글로벌 범위 Validator가 검증할 커맨드 객체에 @Valid 애노테이션 적용
+
+<br>
+
+글로벌 범위 Validator를 설정해보자.
+
+* **java/config/MvcConfig.java**
+
+  ```java
+  @Configuration
+  @EnableWebMvc
+  public class MvcConfig implements WebMvcConfigurer {
+  
+    @Override
+    public Validator getValidator() {
+      return new RegisterRequestValidator();
+    }
+    
+    ... 생략
+  ```
+
+  * 스프링 MVC는 WebMvcConfigurer 인터페이스의 getValidator() 메서드가 리턴한 객체를 글로벌 범위 Validator로 사용한다.
+  * 글로벌 범위 Validator를 지정하면 @Valid 애노테이션을 사용해서 Validator를 적용할 수 있다.
+
+<br>
+
+@Valid 애노테이션은 Bean Validation API에 포함되어 있다. 이 API를 사용하려면  의존 설정에 validation-api 모듈을 추가해야 한다.
+
+```java
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+compileJava.options.encoding("UTF-8")
+
+apply plugin: 'java'
+apply plugin: 'war'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    implementation 'javax.servlet:javax.servlet-api:4.0.1'
+    implementation 'javax.servlet.jsp:javax.servlet.jsp-api:2.3.3'
+    implementation 'jstl:jstl:1.2'
+    implementation 'org.springframework:spring-webmvc:5.2.4.RELEASE'
+    implementation 'org.springframework:spring-jdbc:5.2.4.RELEASE'
+    implementation 'org.apache.tomcat:tomcat-jdbc:10.0.0-M1'
+    implementation 'org.postgresql:postgresql:42.2.11.jre7'
+    implementation 'org.springframework:springloaded:1.2.8.RELEASE'
+    implementation 'org.slf4j:slf4j-api:2.0.0-alpha1'
+    implementation 'javax.validation:validation-api:2.0.1.Final'
+}
+```
+
+<br>
+
+* **java/controller/RegisterController.java**
+
+  ```java
+  @Controller
+  public class RegisterController {
+  
+    ...
+  
+    @PostMapping("/register/step3")
+    public String handleStep3(@Valid RegisterRequest regReq, Errors errors) {
+      // 에러가 존재하는지 검사
+      if (errors.hasErrors())
+        return "register/step2";
+      try {
+        memberRegisterService.regist(regReq);
+        return "register/step3";
+      } catch (DuplicateMemberDaoException ex) {
+        errors.rejectValue("email", "duplicate");
+        return "register/step2";
+      }
+    }
+  
+  }
+  ```
+
+  * 커맨드 객체에 해당하는 파라미터에 @Valid 애노테이션을 붙이면 글로벌 범위 Validator가 해당 타입을 검증할 수 있는지 확인한다.

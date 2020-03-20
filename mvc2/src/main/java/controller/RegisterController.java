@@ -11,6 +11,8 @@ import spring.DuplicateMemberDaoException;
 import spring.MemberRegisterService;
 import spring.RegisterRequest;
 
+import javax.validation.Valid;
+
 @Controller
 public class RegisterController {
 
@@ -43,9 +45,9 @@ public class RegisterController {
 
   @PostMapping("/register/step3")// 스프링 MVC가 handleStep3() 메서드를 호출할 때
   //  커맨드 객체와 연결된 Errors 객체를 생성해서 파라미터로 전달한다.
-  public String handleStep3(RegisterRequest regReq, Errors errors) {
-    // 커맨드 객체의 값이 올바른지 검사하고 그 결과를 Errors 객체에 담는다.
-    new RegisterRequestValidator().validate(regReq, errors);
+  public String handleStep3(@Valid RegisterRequest regReq, Errors errors) {
+//    // 커맨드 객체의 값이 올바른지 검사하고 그 결과를 Errors 객체에 담는다.
+//    new RegisterRequestValidator().validate(regReq, errors);
     // 에러가 존재하는지 검사
     if (errors.hasErrors())
       return "register/step2";
