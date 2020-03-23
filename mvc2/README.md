@@ -700,6 +700,8 @@ dependencies {
     implementation 'org.postgresql:postgresql:42.2.11.jre7'
     implementation 'org.springframework:springloaded:1.2.8.RELEASE'
     implementation 'org.slf4j:slf4j-api:2.0.0-alpha1'
+      
+    // validation API
     implementation 'javax.validation:validation-api:2.0.1.Final'
 }
 ```
@@ -732,3 +734,253 @@ dependencies {
   ```
 
   * 커맨드 객체에 해당하는 파라미터에 @Valid 애노테이션을 붙이면 글로벌 범위 Validator가 해당 타입을 검증할 수 있는지 확인한다.
+  * 검증 가능하면 실제 검증을 수행하고 그 결과를  Errors에 저장한다.
+  * @Valid 애노테이션을 사용할 때 주의할 점은 **Errors 타입 파라미터가 없으면 검증 실패 시 400 에러를 응답한다.**
+
+<br>
+
+### 글로벌 Validator의 범용성
+
+스프링  MVC는 자체적으로  제공하는 글로벌 Validator가 존재하는데 이 Validator를 사용하면 Bean Validation이 제공하는 애노테이션을 이용해서 값을 검증할 수 있다.
+
+<br>
+
+## 4.2. @InitBinder 애노테이션을 이용한 컨트롤러 범위 Validator
+
+@InitBinder 애노테이션을 이용하면 컨트롤러 범위 Validator를 설정할 수 있다.
+
+* **java/controller/RegisterController.java**
+
+  ```java
+  @Controller
+  public class RegisterController {
+  
+    ... 생략
+  
+    @PostMapping("/register/step3")
+    public String handleStep3(@Valid RegisterRequest regReq, Errors errors) {
+      if (errors.hasErrors())
+        return "register/step2";
+      try {
+        memberRegisterService.regist(regReq);
+        return "register/step3";
+      } catch (DuplicateMemberDaoException ex) {
+        errors.rejectValue("email", "duplicate");
+        return "register/step2";
+      }
+    }
+    
+    // 어떤 Validator가 커맨드 객체를 검증할지를 정의한다.
+    @InitBinder
+    protected void initBinder(WebDataBinder binder) {
+      // 컨트롤러 범위에 적용할 Validator 를 설정한다.
+      binder.setValidator(new RegisterRequestValidator());
+    }
+  
+  }
+  ```
+
+  * @Valid 애노테이션을 붙인 RegisterRequest를 검증할 때 컨트롤러 범위 Validator인 RegisterRequestValidator를 사용한다.
+  * @InitBinder가 붙은 메서드는 컨트롤러의 요청 처리 메서드들 실행하기 전에 매번 실행해서 WebDataBinder를 초기화한다.
+
+<br>
+
+### 글로벌 범위  Validator와 컨트롤러 범위  Validator의 우선 순위
+
+@InitBinder 애노테이션을 붙인 메서드에 전달되는 WebDataBinder는 내부적으로 Validator 목록을 갖는다. 이 목록에는 글로벌 범위 Validator가 기본적으로 포함된다.
+
+그리고 setValidator() 메서드를 사용하면 글로벌 범위 Validator 대신에 컨트롤러 범위 Validator를 사용하게 된다.
+
+<br>
+
+# 5. Bean Validation을 이용한 값 검증 처리
+
+Bean Validation 에는 @Valid 애노테이션뿐만 아니라 @NotNull, @Digits, @Size 등의 애노테이션을 정의하고 있다.
+
+이 애노테이션을 사용하면 **Validator 작성 없이 애노테이션만으로 커맨드 객체의 값 검증을 처리할 수 있다.**
+
+> Bean Validation 2.0 버전을 JSR 380 이라고 한다. 여기서 JSR은 **Java Specifiation Request의** 약자로 **자바 스펙을 기술한 문서를 의미한다.** 각 스펙마다 고유한  JSR 번호를 갖는다.
+
+<br>
+
+* **Bean Validation이 제공하는 애노테이션을 이용해서 커맨드 객체의 값을 검증하는 방법**
+  * Bean Validation과 관련된 의존을 설정에 추가한다.
+  * 커맨드 객체에 @NotNull, @Digits 등의 애노테이션을 이용해서 검증 규칙을 설정한다.
+
+<br>
+
+가장 먼저 Bean Validation 의존을 추가한다.
+
+```java
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    ... 생략
+    implementation 'org.hibernate.validator:hibernate-validator:6.1.2.Final'
+}
+```
+
+<br>
+
+Bean Validation과 프로바이더가 제공하는 애노테이션을 이용해서 값 검증 규칙을 설정해보자.
+
+* **java/config/controller/RegisterRequest.java**
+
+  ```java
+  public class RegisterRequest {
+  
+    @NotBlank
+    @Email
+    private String email;
+    @Size(min = 6)
+    private String password;
+    @NotEmpty
+    private String confirmPassword;
+    @NotEmpty
+    private String name;
+    
+    ... 생략
+  ```
+
+<br>
+
+Bean Validation 애노테이션을 적용한 커맨드 객체를 검증할 수 있는 OptionalValidatorFactoryBean 클래스를 빈으로 등록하자.
+
+* **java/config/MvcConfig.java**
+
+  ```java
+  @Configuration
+  @EnableWebMvc		// OptionalValidatorFactoryBean을 글로벌 범위 Validator로 등록
+  public class MvcConfig implements WebMvcConfigurer {
+    ...
+  }
+  ```
+
+  * @EnableWebMvc 애노테이션이 알아서 등록해준다.
+
+<br>
+
+@Valid 애노테이션을 붙여서 글로벌 범위  Validator로 검증한다.
+
+* **java/controller/RegisterController.java**
+
+  ```java
+  @Controller
+  public class RegisterController {
+  
+    ...
+    
+    @PostMapping("/register/step3")
+    public String handleStep3(@Valid RegisterRequest regReq, Errors errors) {
+      if (errors.hasErrors())
+        return "register/step2";
+      try {
+        memberRegisterService.regist(regReq);
+        return "register/step3";
+      } catch (DuplicateMemberDaoException ex) {
+        errors.rejectValue("email", "duplicate");
+        return "register/step2";
+      }
+    }
+    
+  // 어떤 Validator가 커맨드 객체를 검증할지를 정의한다.
+  //  @InitBinder
+  //  protected void initBinder(WebDataBinder binder) {
+  //    // 컨트롤러 범위에 적용할 Validator 를 설정한다.
+  //    binder.setValidator(new RegisterRequestValidator());
+  //  }
+  
+  }
+  ```
+
+  * 만약 글로벌 범위 Validator를 따로 설정했다면 해당 애노테이션을 삭제하자.
+
+    ```java
+    @Configuration
+    @EnableWebMvc
+    public class MvcConfig implements WebMvcConfigurer {
+    
+      // 글로벌 범위 Validator를 설정하면
+      // OptionalValidatorFactoryBean를 사용하지 않는다.
+      @Override
+      public Validator getValidator() {
+        return new RegisterRequestValidator();
+      }
+      
+      ...
+    ```
+
+<br>
+
+스프링  MVC는 에러 코드에 해당하는 메시지가 존재하지 않을 때 Bean Validation 프로바이더가 제공하는 기본 에러 메시지를 출력한다.
+
+기본 에러 메시지 대신 원하는 에러 메시지를 사용하려면 다음 규칙을 따르는 **메시지 코드를 메시지 프로퍼티 파일에 추가하면 된다.**
+
+* 애노테이션이름.커맨드객체모델명.프로퍼티명
+* 애노테이션이름.프로퍼티명
+* 애노테이션이름
+
+<br>
+
+값을 검사하는 과정에서 @NotBlank 애노테이션으로 지정한 검사를 통과하지 못할 때 사용하는 메시지 코드
+
+* NotBlank.registerRequest.name
+* NotBlank.name
+* NotBlank
+
+<br>
+
+**메시지 프로퍼티 파일**
+
+```properties
+NotBlank=필수 항목입니다. 공백 문자는 허용하지 않습니다.
+NotEmpty=필수 항목입니다.
+Size.password=암호 길이는 6자 이상이어야 합니다.
+Email=올바른 이메일 주소를 입력해야 합니다.
+```
+
+<br>
+
+**실행 결과**
+
+![image](https://user-images.githubusercontent.com/43431081/77288335-e82c0e00-6d1a-11ea-84eb-55bd25112055.png)
+
+<br>
+
+# 5.1. Bean Validation의 주요 애노테이션
+
+* **Bean Validation 1.1의 주요 애노테이션 (javax.validation.constraints)**
+
+  | 애노테이션                    | 주요 속성                                                    | 설명                                                         | 지원 타입                                                  |
+  | ----------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ---------------------------------------------------------- |
+  | @AssertTrue<br />@AssertFalse | -                                                            | 값이 true 인지 또는 false 인지 검사한다.<br />null은 유효하다고 판단한다. | boolean<br />Boolean                                       |
+  | @DecimalMax<br />@DecimalMin  | String value<br />- 최대값 또는 최솟값<br />boolean inclusive<br />- 지정값 포함 여부<br />- 기본값 : true | 지정한 값보다 작거나 같은지 또는 크거나 같은지 검사한다.<br />inclusive가 false면 value로 지정한 값은<br />포함하지 않는다.<br />null은 유효하다고 판단한다. | BigDecimal<br />BigInteger<br />CharSequence<br />정수타입 |
+  | @Max<br />@Min                | long value                                                   | 지정한 값보다 작거나 같은지 또는<br />크거나 같은지 검사한다.<br />null은 유효하다고 판단한다. | BigDecimal<br />BigInteger<br />정수타입                   |
+  | @Digits                       | int integer<br />- 최대 정수 자릿수<br />int fraction<br />- 최대 소수점 자릿수 | 길이나 크기가 지정한 값 범위에 있는지 검사한다.<br />null은 유효하다고 판단한다. | CharSequence<br />Collection<br />Map<br />배열            |
+  | @Size                         | int min<br />- 최소 크기<br />- 기본값 : 0<br />int max<br />- 최대 크기<br />- 기본값 : 정수 최댓값 | 길이나 크기가 지정한 값 범위에<br />있는지 검사한다.<br />null은 유효하다고 판단한다. | CharSequence<br />Collection<br />Map<br />배열            |
+  | @Null<br />@NotNull           | -                                                            | 값이 null 인지 또는 null이 아닌지<br />검사한다.             | -                                                          |
+  | @Pattern                      | String regexp<br />- 정규표현식                              | 값이 정규표현식에 일치하는지 검사한다.<br />null은 유효하다고 판단한다. | CharSequence                                               |
+
+  * @NotNull을 제외한 나머지 애노테이션은 검사 대상 값이 null인 경우 유효한 것으로 판단한다.
+
+  * 따라서 필수 입력 값을 검사할 때에는 @NotNull과 @Size를 함께 사용해야 한다.
+
+    ```java
+    // @NotNull만 사용하면 title의 값이 빈 문자열("")일 경우 값 검사를 통과한다.
+    @NotNull
+    @Size(min=1)
+    private String title;
+    ```
+
+<br>
+
+* **Bean Validation 2.0이 추가 제공하는 애노테이션**
+
+  | 애노테이션                     | 설명                                                         | 지원 타입                                       |
+  | ------------------------------ | ------------------------------------------------------------ | ----------------------------------------------- |
+  | @NotEmpty                      | 문자열이나 배열의 경우 null이 아니고 길이가 0이 아닌지 검사한다.<br />콜렉션의 경우 null이 아니고 크기가 0이 아닌지 검사한다. | CharSequence<br />Collection<br />Map<br />배열 |
+  | @NotBlank                      | null이 아니고 최소한 한 개 이상의 공백아닌 문자를 포함하는지 검사한다. | CharSequence                                    |
+  | @Positive<br />@PositiveOrZero | 양수인지 검사한다.<br />OrZero가 붙은 것은 0 또는 양수인지 검사한다.<br />null은 유효하다고 판단한다. | BigDecimal<br />BigInteger<br />정수타입        |
+  | @Negative<br />@NegativeOrZero | 음수인지 검사한다.<br />OrZero가 붙은 것은 0 또는 음수인지 검사한다.<br />null은 유효하다고 판단한다. | BigDecimal<br />BigInteger<br />정수타입        |
+  | @Email                         | 이메일 주소가 유효한지 검사한다.<br />null은 유효하다고 판단한다. | CharSequence                                    |
+  | @Future<br />@FutureOrPresent  | 해당 시간이 미래 시간인지 검사한다.<br />OrPresent가 붙은 것은 현재 또는 미래 시간인지 검사한다.<br />null은 유효하다고 판단한다. | 시간 관련 타입                                  |
+  | @Past<br />@PastOrPresent      | 해당 시간이 과거 시간인지 검사한다.<br />OrPresent가 붙은 것은 현재 또는 과거 시간인지 검사한다.<br />null은 유효하다고 판단한다. | 시간 관련 타입                                  |

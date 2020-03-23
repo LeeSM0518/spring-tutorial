@@ -27,4 +27,5 @@ dependencies {
     implementation 'org.springframework:springloaded:1.2.8.RELEASE'
     implementation 'org.slf4j:slf4j-api:2.0.0-alpha1'
     implementation 'javax.validation:validation-api:2.0.1.Final'
+    implementation 'org.hibernate.validator:hibernate-validator:6.1.2.Final'
 }
