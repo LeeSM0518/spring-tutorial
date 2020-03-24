@@ -1,6 +1,7 @@
 package config;
 
 import controller.RegisterRequestValidator;
+import interceptor.AuthCheckInterceptor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +40,20 @@ public class MvcConfig implements WebMvcConfigurer {
     ms.setBasenames("message.label");
     ms.setDefaultEncoding("UTF-8");
     return ms;
+  }
+
+  @Bean
+  public AuthCheckInterceptor authCheckInterceptor() {
+    return new AuthCheckInterceptor();
+  }
+
+  @Override
+  // 인터셉터를 설정하는 메서드
+  public void addInterceptors(InterceptorRegistry registry) {
+    // HandleInterceptor 객체를 설정한다.
+    registry.addInterceptor(authCheckInterceptor())
+        // 인터셉터를 적용할 경로 패턴을 지정한다.
+        .addPathPatterns("/edit/**");
   }
 
 }

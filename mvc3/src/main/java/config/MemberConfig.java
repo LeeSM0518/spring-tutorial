@@ -55,4 +55,11 @@ public class MemberConfig {
     return pwdSvc;
   }
 
+  @Bean
+  public AuthService authService() {
+    AuthService authService = new AuthService();
+    authService.setMemberDao(memberDao());
+    return authService;
+  }
+
 }
