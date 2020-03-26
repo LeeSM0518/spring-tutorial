@@ -2,28 +2,28 @@ package controller;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 public class ListCommand {
 
   @DateTimeFormat(pattern = "yyyyMMddHH")
-  private LocalDateTime from;
+  private Date from;
   @DateTimeFormat(pattern = "yyyyMMddHH")
-  private LocalDateTime to;
+  private Date to;
 
-  public LocalDateTime getFrom() {
+  public Date getFrom() {
     return from;
   }
 
-  public void setFrom(LocalDateTime from) {
+  public void setFrom(Date from) {
     this.from = from;
   }
 
-  public LocalDateTime getTo() {
+  public Date getTo() {
     return to;
   }
 
-  public void setTo(LocalDateTime to) {
+  public void setTo(Date to) {
     this.to = to;
   }
 

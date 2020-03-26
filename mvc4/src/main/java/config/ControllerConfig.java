@@ -19,6 +19,13 @@ public class ControllerConfig {
   private MemberDao memberDao;
 
   @Bean
+  public MemberDetailController memberDetailController() {
+    MemberDetailController controller = new MemberDetailController();
+    controller.setMemberDao(memberDao);
+    return controller;
+  }
+
+  @Bean
   public MemberListController memberListController() {
     MemberListController memberListController
         = new MemberListController();

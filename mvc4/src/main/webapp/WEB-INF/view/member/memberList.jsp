@@ -1,13 +1,6 @@
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="tf" tagdir="/WEB-INF/tags" %>
-<%--
-  Created by IntelliJ IDEA.
-  User: sangminlee
-  Date: 2020/03/26
-  Time: 12:04 오후
-  To change this template use File | Settings | File Templates.
---%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
@@ -16,10 +9,16 @@
 <body>
 <form:form modelAttribute="cmd">
     <p>
+            <%-- <form:input> 태그를 이용해서 --%>
+            <%-- 커맨드 객체의 from 프로퍼티와 to 프로퍼티를 위한 <input> 태그 생성--%>
         <label>from: <form:input path="from"/></label>
+        <form:errors path="from"/>
         ~
         <label>to:<form:input path="to"/></label>
+        <form:errors path="to"/>
         <input type="submit" value="조회">
+            <%-- from과 to는 @DateTimeFormat 애노테이션에 설정한 패턴인
+             "yyyyMMddHH" 패턴에 맞춰서 값을 입력해줘야 한다.--%>
     </p>
 </form:form>
 
