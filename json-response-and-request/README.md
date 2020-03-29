@@ -143,5 +143,189 @@ Jackson은 자바 객체와 JSON 사이의 변환을 처리한다.
 
 <br>
 
-## 3.1. @JsonIgnore를 이용한 제외 처리ㄷ
+## 3.1. @JsonIgnore를 이용한 제외 처리
+
+보통 암호와 같이 민감한 데이터는 응답 결과에 포함시키면 안되므로 password 데이터를 응답 결과에서 제외시켜야 한다.
+
+Jackson이 제공하는 **@JsonIgnore 애노테이션을 사용하면** 이를 간단히 처리할 수 있다.
+
+다음과 같이 **JSON 응답에 포함시키지 않을 대상에** @JsonIgnore 애노테이션을 붙인다.
+
+* **java/spring/Member.java**
+
+  ```java
+  public class Member {
+  
+    private Long id;
+    private String email;
+    @JsonIgnore
+    private String password;
+    private String name;
+    private LocalDateTime registerDateTime;
+    
+    ...
+  ```
+
+<br>
+
+## 3.2. 날짜 형식 변환 처리: @JsonFormat 사용
+
+보통 날짜나 시간은 배열이나 숫자보다는 "2018-03-01 11:07:49" 와 같이 특정 형식을 갖는 문자열로 표현하는 것을 선호한다.
+
+Jackson에서 날짜나 시간 값을 특정한 형식으로 표현하는 가장 쉬운 방법은 **@JsonFormat 애노테이션을** 사용하는 것이다.
+
+* **java/spring/Member.java**
+
+  ```java
+  public class Member {
+  
+    private Long id;
+    private String email;
+    @JsonIgnore
+    private String password;
+    private String name;
+    // ISO-8601 형식으로 변환
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private LocalDateTime registerDateTime;
+    
+    ...
+  ```
+
+* **실행 결과**
+
+  ![image](https://user-images.githubusercontent.com/43431081/77846827-c8518a00-71f3-11ea-96bc-64a224227304.png)
+
+  * ISO-8601 형식이 아닌 원하는 형식으로 변환해서 출력하고 싶다면 pattern 속성을 사용하면 된다.
+
+    ```java
+    @JsonFormat(pattern = "yyyyMMddHHmmss")
+    ```
+
+<br>
+
+## 3.3. 날짜 형식 변환 처리 : 기본 적용 설정
+
+스프링 MVC는 자바 객체를 HTTP 응답으로 변환할 때 **HttpMessageConvert라는** 것을 사용한다.
+
+Jackson을 이용해서 자바 객체를 JSON으로 변환할 때에는 **MappingJackson2HttpMessageConverter를 새롭게 등록해서** 날짜 형식을 원하는 형식으로 변환하도록 설정하면 모든 날짜 형식에 동일한 변환 규칙을 적용할 수 있다.
+
+<br>
+
+* **java/config/MvcConfig.java**
+
+  ```java
+  @Configuration
+  // @EnableWebMvc를 통해 스프링 MVC는
+  //  여러 형식으로 변환할 수 있는 HttpMessageConverter를 미리 등록한다.
+  @EnableWebMvc
+  public class MvcConfig implements WebMvcConfigurer {
+  
+    @Override
+    // HttpMessageConverter를 추가로 설정할 때 사용하는 메서드이다.
+    // 등록된 HttpMessageConverter 목록을 파라미터로 받는다.
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+      ObjectMapper objectMapper = Jackson2ObjectMapperBuilder
+        .json()
+        // Jackson이 날짜 형식을 출력할 때 유닉스 타임 스탬프로 출력하는
+        //  기능을 비활성화한다.
+        // 이 기능을 비활성화하면 ObjectMapper는 날짜 타입의 값을
+        //  ISO-8601 형식으로 출력한다.
+        .featuresToDisable(
+        SerializationFeature.WRITE_DATE_KEYS_AS_TIMESTAMPS)
+        .build();
+      // 새로 생성한 HttpMessageConverter는 목록의 제일 앞에 위치시켜야 한다.
+      converters.add(0,
+                     new MappingJackson2HttpMessageConverter(objectMapper));
+    }
+    ...
+  ```
+
+<br>
+
+모든 java.util.Date 타입의 값을 원하는 형식으로 출력하도록 설정하고 싶으면 **Jackson2ObjectMapperBuilder#simpleDateFormat() 메서드를** 이용해서 패턴을 지정한다.
+
+```java
+ObjectMapper objectMapper = Jackson2ObjectMapperBuilder
+  .json()
+  .simpleDateForamt("yyyyMMddHHmmss")
+  .build();
+converters.add(0,
+               new MappingJackson2HttpMessageConverter(objectMapper));
+```
+
+* simpleDateForamt()으로 Date 타임을 변환할 때 사용할 패턴을 지정해도 LocalDateTime 타입 변환에는 해당 패턴을 사용하지 않는다.
+
+<br>
+
+LocalDateTime 타입에 대해 ISO-8601 형식 대신 원하는 패턴을 설정하고 싶다면 **scrializerByType() 메서드를 이용해서 LocalDateTime 타입에 대한 JsonSerializer를 직접 설정하면 된다.**
+
+```java
+DateTimeFormatter formatter =
+  DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+ObjectMapper objectMapper = Jackson2ObjectMapperBuilder
+  .json()
+  .serializerByType(LocalDateTime.class,
+                    new LocalDateTimeSerializer(formatter))
+  .build();
+converters.add(0,
+              new MappingJackson2HttpMessageConverter(objectMapper));
+```
+
+<br>
+
+## 3.4. 응답 데이터의 컨텐츠 형식
+
+![image](https://user-images.githubusercontent.com/43431081/77848441-97775200-71ff-11ea-9597-24824f088454.png)
+
+* JSON 응답의 Content-Type은 application/json 이다.
+
+<br>
+
+# 4. @RequestBody로 JSON 요청 처리
+
+JSON 형식의 요청 데이터를 자바 객체로 변환하는 기능에 대해 살펴보자.
+
+JSON 형식으로 전송된 요청 데이터를 커맨드 객체로 전달받는 방법은 매우 간단하다.
+
+**커맨드 객체에 @RequestBody 애노테이션을 붙이기만 하면 된다.**
+
+* **java/controller/RestMemberController.java**
+
+  ```java
+  @RestController
+  public class RestMemberController {
+  
+    private MemberDao memberDao;
+    private MemberRegisterService registerService;
+  
+    @PostMapping("/api/members")
+    public void newMember(
+        // @RequestBody 애노테이션을 커맨드 객체에 붙이면
+        //  JSON 형식의 문자열을 해당 자바 객체로 변환한다.
+        @RequestBody @Valid RegisterRequest regReq,
+        HttpServletResponse response) throws IOException {
+      try {
+        Long newMemberId = registerService.regist(regReq);
+        // 응답 헤더에 "Location"을 추가
+        //	회원의 아이디를 URL에 담아 응답 결과로 포함시킨다.
+        response.setHeader("Location", "/api/members/" + newMemberId);
+        response.setStatus(HttpServletResponse.SC_CREATED);
+      } catch (DuplicateMemberDaoException dupEx) {
+        // 중복된 ID를 전송할 경우 응답 상태 코드로 409(CONFLICT)를 리턴한다.
+        response.sendError(HttpServletResponse.SC_CONFLICT);
+      }
+    }
+    
+    ...
+  ```
+
+* **실행 결과 (Postman App)**
+
+  ![image-20200329211556060](../../Library/Application Support/typora-user-images/image-20200329211556060.png)
+
+  * 응답 코드로 **201(CREATED)가** 전송된 것을 확인할 수 있다.
+
+<br>
+
+## 4.1. JSON 데이터의 날짜 형식 다루기
 

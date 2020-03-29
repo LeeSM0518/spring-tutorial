@@ -5,7 +5,11 @@
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
         http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd">
 
-    <!-- DispatcherServlet을 dispatcher 라는 이름으로 등록한다. -->
+    <context-param>
+        <param-name>isLog4jAutoInitializationDisabled</param-name>
+        <param-value>true</param-value>
+    </context-param>
+
     <servlet>
         <servlet-name>dispatcher</servlet-name>
         <servlet-class>

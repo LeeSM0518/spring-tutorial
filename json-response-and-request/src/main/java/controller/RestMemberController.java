@@ -1,13 +1,10 @@
 package controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
-import spring.Member;
-import spring.MemberDao;
-import spring.MemberRegisterService;
+import org.springframework.web.bind.annotation.*;
+import spring.*;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 
@@ -36,6 +33,21 @@ public class RestMemberController {
       return null;
     }
     return member;
+  }
+
+  @PostMapping("/api/members")
+  public void newMember(
+      // @RequestBody 애노테이션을 커맨드 객체에 붙이면
+      //  JSON 형식의 문자열을 해당 자바 객체로 변환한다.
+      @RequestBody @Valid RegisterRequest regReq,
+      HttpServletResponse response) throws IOException {
+    try {
+      Long newMemberId = registerService.regist(regReq);
+      response.setHeader("Location", "/api/members/" + newMemberId);
+      response.setStatus(HttpServletResponse.SC_CREATED);
+    } catch (DuplicateMemberDaoException dupEx) {
+      response.sendError(HttpServletResponse.SC_CONFLICT);
+    }
   }
 
   public void setMemberDao(MemberDao memberDao) {

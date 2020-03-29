@@ -26,9 +26,11 @@ dependencies {
     implementation 'org.apache.tomcat:tomcat-jdbc:10.0.0-M1'
     implementation 'org.postgresql:postgresql:42.2.11.jre7'
     implementation 'org.springframework:springloaded:1.2.8.RELEASE'
-    implementation 'org.slf4j:slf4j-api:2.0.0-alpha1'
     implementation 'javax.validation:validation-api:2.0.1.Final'
     implementation 'org.hibernate.validator:hibernate-validator:6.1.2.Final'
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.0.1'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.10.3'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.30'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.13.1'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.13.1'
 }
