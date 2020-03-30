@@ -76,7 +76,7 @@ Jackson은 자바 객체와 JSON 사이의 변환을 처리한다.
 * **java/controller/RestMemberController.java**
 
   ```java
-  // @Controller 애노테이션 대신 @RestController 애노테이션 사
+  // @Controller 애노테이션 대신 @RestController 애노테이션 사용
   @RestController
   public class RestMemberController {
   
@@ -328,4 +328,86 @@ JSON 형식으로 전송된 요청 데이터를 커맨드 객체로 전달받는
 <br>
 
 ## 4.1. JSON 데이터의 날짜 형식 다루기
+
+별도 설정을 하지 않으면 다음 패턴(시간대가 없는 JSR-8601 형식)의 문자열을 LocalDateTime과 Date로 변환한다.
+
+```
+yyyy-MM-ddTHH:mm:ss
+```
+
+<br>
+
+특정 패턴을 가진 문자열을 LocalDateTime이나 Date 타입으로 변환하고 싶다면 **@JsonFormat 애노테이션의 pattern 속성을 사용해서** 패턴을 지정한다.
+
+```java
+@JsonFormat(pattern = "yyyyMMddHHmmss")
+private LocalDateTime birthDateTime;
+
+@JsonFormat(pattern = "yyyyMMdd HHmmss")
+private Date birthDate;
+```
+
+<br>
+
+특정 속성이 아니라 해당 타입을 갖는 모든 속성에 적용하고 싶다면 스프링 MVC 설정을 추가하면 된다,
+
+```java
+@Configuration
+@EnableWebMvc
+public class MvcConfig implements WebMvcConfigurer {
+  ... 생략
+  
+  @Override
+  public void extendMessageConverters(
+    List<HttpMessageConverter<?>> converters) {
+    DateTimeFormatter formatter =
+      DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    ObjectMapper objectMapper = Jackson2ObjectMapperBuilder
+      .json()
+      .featuresToEnable(SerializationFeature.INDENT_OUTPUT)
+      .deserializerByType(LocalDateTime.class,
+                         new LocalDateTimeDeserializer(formatter))
+      .simpleDateFormat("yyyyMMdd HHmmss")
+      .build();
+    
+    converters.add(0,
+                  new MappingJackson2HttpMessageConverter(objectMapper));
+  }
+}
+```
+
+* **deserializerByType()는** JSON 데이터를 LocalDateTime 타입으로 변환할 때 사용할 패턴을 지정하고 simpleDateFormat()은 Date 타입으로 변환할 때 사용할 패턴을 지정한다.
+* **simpleDateFormat()은** Date 타입을 JSON 데이터로 변환할 때에도 사용된다.
+
+<br>
+
+## 4.2. 요청 객체 검증하기
+
+JSON 형식으로 전송할 데이터를 변환한 객체도 @Valid 애노테이션이나 별도 Validator를 이용해서 검증할 수 있다.
+
+@Valid 애노테이션을 사용한 경우 검증에 실패하면 400(Bad Request) 상태 코드를 응답한다.
+
+* **Validator를 사용할 경우**
+
+  ```java
+  @PostMapping("/api/members")
+  public void newMember(
+    @RequestBody RegisterRequest regReq, Errors errors,
+    HttpServletResponse response) throws IOException {
+    try {
+      new RegisterRequestValidator().validate(regReq, errors);
+      if (errors.hasErrors()) {
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+        return;
+      }
+      ...
+    } catch (DuplicateMemberException dupEx) {
+      response.sendError(HttpServletResponse.SC_CONFLICT);
+    }
+  }
+  ```
+
+<br>
+
+# 5. ResponseEntity로 객체 리턴하고 응답 코드 지정하기
 
