@@ -1,0 +1,22 @@
+server:
+  port: 8099
+
+# 스프링 부트는 알아서 DB 설정이 없으면 메모리 환경에서 작업을 한다.
+spring:
+#  datasource:
+#    driver-class-name: org.h2.Driver
+#    url: jdbc:h2:mem:test
+#    username: test
+#    password: 1234
+#
+#  jpa:
+#    hibernate:
+#      ddl-auto: create // create-drop: WAS가 종료될 때, 테이블을 모두 drop 드랍한다.
+#    properties:
+#      hibernate:
+#        format_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type: trace
