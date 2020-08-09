@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Getter
+@Getter @Setter
 // @Setter setter를 제거하고 핵심 비지니스 로직을 사용하여 데이터를 수정한다.
 // 상속관계 전략을 정해줘야 한다. 우리는 싱글 테이블 전략을 사용할 것이므로 아래와 같이 작성
 //  JOINED          : 정교화된 스타일
@@ -52,6 +52,12 @@ public abstract class Item {
       throw new NotEnoughStockException("need more stock");
     }
     this.stockQuantity = restStock;
+  }
+
+  public void change(String name, int price, int stockQuantity) {
+    this.name = name;
+    this.price = price;
+    this.stockQuantity = stockQuantity;
   }
 
 }

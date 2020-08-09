@@ -2,6 +2,7 @@ package japbook.jpashop.service;
 
 import japbook.jpashop.domain.Member;
 import japbook.jpashop.repository.MemberRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,15 +11,10 @@ import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
-// @RequiredArgsConstructor 를 통해 리포지토리 생성자 주입 구현 가능
+@RequiredArgsConstructor //리포지토리 생성자 주입 구현 가능
 public class MemberService {
 
   private final MemberRepository memberRepository;
-
-  @Autowired
-  public MemberService(MemberRepository memberRepository) {
-    this.memberRepository = memberRepository;
-  }
 
   /**
    * 회원 가입
