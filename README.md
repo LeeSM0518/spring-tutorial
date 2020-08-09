@@ -1,6 +1,16 @@
 # Spring Tutorial
 
-## Contents
+## 스프링5 입문
+
+### 교재
+
+* **책 이름** : 초보 웹 개발자를 위한 스프링5 프로그래밍 입문
+* **저자** : 최범균
+* **출판사** : 가메출판사
+
+<br>
+
+### 목차
 
 * [Chapter1. 들어가며 (what-is-spring)](https://github.com/LeeSM0518/spring-tutorial/tree/master/what-is-spring)
 * [Chapter2. 스프링 시작하기 (start-spring)](https://github.com/LeeSM0518/spring-tutorial/tree/master/start-spring)
@@ -23,8 +33,33 @@
 
 <br>
 
-## 교재
+## 스프링 부트와 JPA 활용 인강
 
-* **책 이름** : 초보 웹 개발자를 위한 스프링5 프로그래밍 입문
-* **저자** : 최범균
-* **출판사** : 가메출판사
+### 인강 소개
+
+* **사이트: 인프런**
+* **강의명: 실전! 스프링 부트와 JPA 활용1 - 웹 애플리케이션 개발**
+* **강의자: 김영환**
+* **URL: ** [https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81%EB%B6%80%ED%8A%B8-JPA-%ED%99%9C%EC%9A%A9-1#](https://www.inflearn.com/course/스프링부트-JPA-활용-1#)
+
+<br>
+
+### 목차
+
+<details>
+  <summary>스프링 부트와 JPA 활용 인강</summary>
+  <ol>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/project-setting.md">프로젝트 환경설정</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/library-review.md">라이브러리 살펴보기</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/view-setting.md">View 환경설정</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/h2-database-install.md">H2 데이터베이스 설치</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/jpa-and-db-setting">JPA와 DB 설정, 동작 확인</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/domain-driven-design.md">도메인 분석 설계</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/entity-class-development.md">엔티티 클래스 개발</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/application-development-ready.md">애플리케이션 구현 준비</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/member-domain-development.md">회원 도메인 개발</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/item-domain-development.md">상품 도메인 개발</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/order-domain-development.md">주문 도메인 개발</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/web-layer-development.md">웹 계층 개발</a></li>
+  </ol>
+</details>
