@@ -2,22 +2,27 @@ server:
   port: 8099
 
 spring:
-  h2:
-    console:
-      enabled: true   # H2 웹 콘솔을 사용하겠다는 의미
-      path: /test_db  # 콘솔의 경로
+#  h2:
+#    console:
+#      enabled: true   # H2 웹 콘솔을 사용하겠다는 의미
+#      path: /test_db  # 콘솔의 경로
 
+#  datasource:
+#    driver-class-name: org.h2.Driver  # h2 드라이버 설정
+#    url: jdbc:h2:file:/Users/sangminlee/spring-tutorial/inflearn/jpashop/db/test_db; # 접속 URL
+#    username: test  # 사용자 이름
+#    password: 1234  # 사용자 암호
   datasource:
-    driver-class-name: org.h2.Driver  # h2 드라이버 설정
-    url: jdbc:h2:file:/Users/sangminlee/spring-tutorial/inflearn/jpashop/db/test_db; # 접속 URL
-    username: test  # 사용자 이름
-    password: 1234  # 사용자 암호
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@localhost:1521/xe # 접속 URL
+    username: system  # 사용자 이름
+    password: oracle  # 사용자 암호
 
   jpa:
     hibernate:
       # 자동으로 테이블을 만들어주는 모드.
       #   기능: 애플리케이션 실행 시점에 테이블을 drop하고, 다시 생성
-      ddl-auto: create
+      ddl-auto: none
     properties:            # hibernate 의 특정한 속성을 작성
       hibernate:
 #        show_sql: true     # hinbernate가 생성한 SQL을 system.out 에 출력한다. // 운영환경에서는 지워야 한다.

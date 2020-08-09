@@ -34,6 +34,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 //	implementation 'com.querydsl:querydsl-jpa' // querydsl 설정
 	implementation("com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.5.6")
+	implementation 'com.oracle.database.jdbc:ojdbc8:19.7.0.0'
 }
 
 ////querydsl 추가 시작
