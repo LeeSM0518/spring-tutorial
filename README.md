@@ -53,7 +53,7 @@
     <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/library-review.md">라이브러리 살펴보기</a></li>
     <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/view-setting.md">View 환경설정</a></li>
     <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/h2-database-install.md">H2 데이터베이스 설치</a></li>
-    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/jpa-and-db-setting">JPA와 DB 설정, 동작 확인</a></li>
+    <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/jpa-and-db-setting.md">JPA와 DB 설정, 동작 확인</a></li>
     <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/domain-driven-design.md">도메인 분석 설계</a></li>
     <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/entity-class-development.md">엔티티 클래스 개발</a></li>
     <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/application-development-ready.md">애플리케이션 구현 준비</a></li>
