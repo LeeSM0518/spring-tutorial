@@ -40,7 +40,7 @@
 * **사이트: 인프런**
 * **강의명: 실전! 스프링 부트와 JPA 활용1 - 웹 애플리케이션 개발**
 * **강의자: 김영환**
-* **URL: ** [https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81%EB%B6%80%ED%8A%B8-JPA-%ED%99%9C%EC%9A%A9-1#](https://www.inflearn.com/course/스프링부트-JPA-활용-1#)
+* **URL:** [https://www.inflearn.com/course/스프링부트-JPA-활용-1](https://www.inflearn.com/course/%EC%8A%A4%ED%94%84%EB%A7%81%EB%B6%80%ED%8A%B8-JPA-%ED%99%9C%EC%9A%A9-1)
 
 <br>
 
@@ -63,3 +63,11 @@
     <li><a href="https://github.com/LeeSM0518/spring-tutorial/tree/master/inflearn/boot-and-jpa/summary/web-layer-development.md">웹 계층 개발</a></li>
   </ol>
 </details>
+<br>
+
+## 스프링 시큐리티
+
+* **사이트: 인프런**
+* **강의명: 스프링 시큐리티 - Spring Boot 기반으로 개발하는 Spring Security**
+* **강의자: 정수원**
+* **URL:** [https://www.inflearn.com/course/코어-스프링-시큐리티](https://www.inflearn.com/course/%EC%BD%94%EC%96%B4-%EC%8A%A4%ED%94%84%EB%A7%81-%EC%8B%9C%ED%81%90%EB%A6%AC%ED%8B%B0#)
