@@ -1,0 +1,24 @@
+### ROLE_USER인 사용자 로그인 요청
+POST http://localhost:8080/api/login
+Content-Type: application/json
+X-Requested-With: XMLHttpRequest
+
+{
+  "username": "user1",
+  "password": "123"
+}
+
+### ROLE_MANAGER인 사용자 로그인 요청
+POST http://localhost:8080/api/login
+Content-Type: application/json
+X-Requested-With: XMLHttpRequest
+
+{
+  "username": "manager",
+  "password": "123"
+}
+
+### messages 자원 요청
+GET http://localhost:8080/api/messages
+Content-Type: application/json
+X-Requested-With: XMLHttpRequest
