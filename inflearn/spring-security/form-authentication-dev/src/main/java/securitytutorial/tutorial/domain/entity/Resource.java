@@ -1,4 +1,0 @@
-package securitytutorial.tutorial.domain.entity;
-
-public class Resource {
-}

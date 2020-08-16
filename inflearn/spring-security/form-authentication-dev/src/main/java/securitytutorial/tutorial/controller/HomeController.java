@@ -1,14 +1,14 @@
-package securitytutorial.tutorial.controller.admin;
+package securitytutorial.tutorial.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class AdminController {
+public class HomeController {
 
-  @GetMapping("/admin")
+  @GetMapping("/")
   public String home() throws Exception {
-    return "admin/home";
+    return "home";
   }
 
 }

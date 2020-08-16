@@ -21,7 +21,6 @@ public class LoginController {
                       Model model) {
     model.addAttribute("error", error);
     model.addAttribute("exception", exception);
-
     return "login";
   }
 

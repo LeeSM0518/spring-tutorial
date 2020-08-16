@@ -8,10 +8,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import securitytutorial.tutorial.domain.entity.Account;
+import securitytutorial.tutorial.domain.entity.Role;
 import securitytutorial.tutorial.repository.UserRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service("userDetailsService")
 public class CustomDetailService implements UserDetailsService {
@@ -30,11 +33,21 @@ public class CustomDetailService implements UserDetailsService {
       throw new UsernameNotFoundException("UsernameNotFoundException");
     }
 
-    // 권한 리스트
-    List<GrantedAuthority> roles = new ArrayList<>();
-    roles.add(new SimpleGrantedAuthority(account.getRole())); // 권한 추가
+    Set<String> userRoles = account.getUserRoles()
+        .stream()
+        .map(userRole -> userRole.getRoleName())
+        .collect(Collectors.toSet());
+
+    List<GrantedAuthority> collect = userRoles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
+
+//    // 권한 리스트
+//    List<GrantedAuthority> roles = account.getUserRoles()
+//        .stream()
+//        .map(Role::getRoleName)
+//        .map(SimpleGrantedAuthority::new)
+//        .collect(Collectors.toList());
 
     // 인증 객체 생성
-    return new AccountContext(account, roles);
+    return new AccountContext(account, collect);
   }
 }
