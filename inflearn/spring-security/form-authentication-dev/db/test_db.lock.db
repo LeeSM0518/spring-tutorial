@@ -1,6 +1,6 @@
 #FileLock
-#Sun Aug 16 23:59:02 KST 2020
-server=172.30.1.32\:60527
-hostName=172.30.1.32
+#Mon Aug 17 19:13:34 KST 2020
+server=218.38.137.28\:50038
+hostName=218.38.137.28
 method=file
-id=173f7c7f20c598d5b3e2038db6620817efab26ed7b9
+id=173fbe8eb33b461687eb262ec056a4193c1db5ff09a

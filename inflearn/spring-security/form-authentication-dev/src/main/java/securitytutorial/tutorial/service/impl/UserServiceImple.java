@@ -84,7 +84,6 @@ public class UserServiceImple implements UserService {
   @Transactional
   public void deleteUser(Long idx) {
     userRepository.deleteById(idx);
-
   }
 
   @Override
