@@ -19,6 +19,11 @@ public class ControllerConfig {
   private MemberDao memberDao;
 
   @Bean
+  public TestController testController() {
+    return new TestController();
+  }
+
+  @Bean
   public RestMemberController restApi() {
     RestMemberController cont = new RestMemberController();
     cont.setMemberDao(memberDao);
